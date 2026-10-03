@@ -1,0 +1,16 @@
+.buyer-home-hero{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(180px,.6fr);gap:28px;align-items:center;padding:clamp(24px,4vw,54px);border-radius:32px;background:linear-gradient(135deg,#0d4bd9,#2268f3 65%,#114dbd);color:white;margin-bottom:28px}
+.buyer-home-hero h1{font-size:clamp(28px,3.4vw,48px);line-height:1.15;color:white;margin:12px 0 20px}
+.buyer-home-hero p{color:#e2ecff;line-height:1.6}
+.buyer-home-hero .actions{margin-top:24px}
+.buyer-home-hero .button{background:white;color:#1755d7}
+.buyer-home-logo{width:min(100%,260px);height:auto;border-radius:28px;justify-self:center;object-fit:contain}
+.buyer-auth-phone{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:12px;padding-left:14px;background:var(--surface)}
+.buyer-auth-phone input{min-width:0;width:100%;border:0;background:transparent}
+.buyer-auth-phone span{flex-shrink:0}
+#chatView .chat-layout{height:clamp(360px,calc(100dvh - 190px),800px);min-height:0;grid-template-rows:minmax(0,1fr)}
+#chatView .chat-threads{min-height:0;overflow-y:auto;overscroll-behavior-y:contain}
+#chatView #chatRoom{min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#chatView .messages{height:auto;flex:1 1 0;min-height:0;overflow-y:auto;overscroll-behavior-y:contain}
+#chatView .message{flex-shrink:0;overflow-wrap:anywhere}
+#chatView #chatRoom>.actions,#chatView #chatRoom>form,#chatView [data-chat-status],#chatView [data-chat-older]{flex-shrink:0}
+@media(max-width:760px){.buyer-home-hero{grid-template-columns:minmax(0,1fr);gap:20px}.buyer-home-logo{width:140px}#chatView .chat-layout{height:auto;grid-template-rows:auto auto}#chatView .chat-threads{max-height:240px}#chatView #chatRoom{height:calc(100dvh - 100px);min-height:420px}}

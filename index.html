@@ -6,11 +6,14 @@
     <meta name="theme-color" content="#f6f8fc" />
     <meta name="description" content="MapMarket — товары и магазины рядом" />
     <title>MapMarket</title>
+    <link rel="icon" type="image/png" href="assets/mapmarket-logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="styles.css?v=20260921-2" />
+    <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="styles.css?v=20261003-1" />
+    <meta property="og:title" content="MapMarket — товары и магазины рядом" />
+    <meta property="og:description" content="Найдите товар, сравните предложения магазинов и постройте маршрут." />
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -38,7 +41,7 @@
           <button class="icon-button notification-button" data-route="notifications" aria-label="Уведомления"><i data-lucide="bell"></i><span id="notificationDot" class="notification-dot hidden"></span></button>
         </header>
 
-        <section id="view" class="view" aria-live="polite"></section>
+        <section id="view" class="view" aria-live="polite"><div class="loader"><div class="spinner"></div></div></section>
       </main>
 
       <nav id="mobileNav" class="mobile-nav"></nav>
@@ -48,9 +51,10 @@
     <div id="toastRoot" class="toast-root"></div>
     <input id="filePicker" type="file" accept="image/jpeg,image/png,image/webp" hidden />
 
-    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
-    <script type="module" src="app.js?v=20260921-2"></script>
+    <script src="vendor/lucide.min.js"></script>
+    <script src="vendor/leaflet/leaflet.js"></script>
+    <script src="vendor/qrcode.js"></script>
+    <script src="runtime-config.js"></script>
+    <script type="module" src="app.js?v=20261003-1"></script>
   </body>
 </html>

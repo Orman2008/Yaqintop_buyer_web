@@ -1,12 +1,18 @@
-const PRODUCTION_API = 'https://mapmarket-backend-production-c3d8.up.railway.app';
-const API_BASE = window.location.hostname === new URL(PRODUCTION_API).hostname
-  ? window.location.origin
-  : PRODUCTION_API;
+import {createBuyerAuth} from './buyer-auth.js?v=20261003-1';
+function resolveApiBaseUrl(configuredUrl, location) {
+  const configured=String(configuredUrl||'').trim().replace(/\/+$/,'');
+  if(configured)return configured;
+  return ['localhost','127.0.0.1','::1'].includes(location?.hostname)
+    ? String(location.origin||'').replace(/\/+$/,'')
+    : '';
+}
+const API_BASE = resolveApiBaseUrl(window.MAPMARKET_CONFIG?.PUBLIC_API_BASE_URL,window.location);
+const API_REQUEST_TIMEOUT_MS = 15_000;
 
 const dictionary = {
-  ru: { home:'Главная', favorites:'Избранное', catalog:'Каталог', chats:'Чаты', profile:'Профиль', map:'Карта', language:'Язык', searchPlaceholder:'Поиск товаров и категорий', hello:'Добро пожаловать', hero:'Находите лучшие товары рядом', heroText:'Сравнивайте цены, открывайте магазины на карте и прокладывайте маршрут.', explore:'Смотреть каталог', openMap:'Открыть карту', recommendations:'Рекомендации', nearby:'Магазины рядом', all:'Все', login:'Войти', logout:'Выйти', notifications:'Уведомления', wallet:'Кошелёк и покупки', settings:'Настройки', help:'Справка и поддержка', account:'Мой аккаунт', empty:'Здесь пока ничего нет', price:'Цена', route:'Проложить маршрут', write:'Написать продавцу', reviews:'Отзывы', send:'Отправить', addPhoto:'Добавить фото', message:'Введите сообщение', save:'Сохранить', deleteAccount:'Удалить аккаунт', searchResults:'Результаты поиска', categories:'Категории', recently:'Недавно просмотренные' },
-  en: { home:'Home', favorites:'Favorites', catalog:'Catalog', chats:'Chats', profile:'Profile', map:'Map', language:'Language', searchPlaceholder:'Search products and categories', hello:'Welcome', hero:'Find the best products nearby', heroText:'Compare prices, discover stores on the map and build a route.', explore:'Browse catalog', openMap:'Open map', recommendations:'Recommendations', nearby:'Nearby stores', all:'All', login:'Sign in', logout:'Sign out', notifications:'Notifications', wallet:'Wallet and purchases', settings:'Settings', help:'Help and support', account:'My account', empty:'Nothing here yet', price:'Price', route:'Build route', write:'Message seller', reviews:'Reviews', send:'Send', addPhoto:'Add photo', message:'Enter a message', save:'Save', deleteAccount:'Delete account', searchResults:'Search results', categories:'Categories', recently:'Recently viewed' },
-  uz: { home:'Bosh sahifa', favorites:'Sevimlilar', catalog:'Katalog', chats:'Chatlar', profile:'Profil', map:'Xarita', language:'Til', searchPlaceholder:'Mahsulot va toifalarni qidirish', hello:'Xush kelibsiz', hero:'Yaqindagi eng yaxshi mahsulotlarni toping', heroText:'Narxlarni solishtiring, xaritada do‘konlarni toping va yo‘nalish tuzing.', explore:'Katalogni ko‘rish', openMap:'Xaritani ochish', recommendations:'Tavsiyalar', nearby:'Yaqindagi do‘konlar', all:'Barchasi', login:'Kirish', logout:'Chiqish', notifications:'Bildirishnomalar', wallet:'Hamyon va xaridlar', settings:'Sozlamalar', help:'Yordam', account:'Mening hisobim', empty:'Hozircha bu yer bo‘sh', price:'Narx', route:'Yo‘nalish', write:'Sotuvchiga yozish', reviews:'Sharhlar', send:'Yuborish', addPhoto:'Rasm qo‘shish', message:'Xabar kiriting', save:'Saqlash', deleteAccount:'Hisobni o‘chirish', searchResults:'Qidiruv natijalari', categories:'Toifalar', recently:'Yaqinda ko‘rilgan' },
+  ru: { home:'Главная', favorites:'Избранное', catalog:'Каталог', chats:'Чаты', profile:'Профиль', map:'Карта', language:'Язык', searchPlaceholder:'Поиск товаров и категорий', hello:'Добро пожаловать', hero:'Находите лучшие товары рядом', heroText:'Сравнивайте цены, открывайте магазины на карте и прокладывайте маршрут.', explore:'Смотреть каталог', openMap:'Открыть карту', recommendations:'Рекомендации', nearby:'Магазины рядом', all:'Все', login:'Войти', logout:'Выйти', notifications:'Уведомления', wallet:'Кошелёк и покупки', settings:'Настройки', help:'Справка и поддержка', account:'Мой аккаунт', empty:'Здесь пока ничего нет', price:'Цена', route:'Проложить маршрут', write:'Написать продавцу', reviews:'Отзывы', send:'Отправить', addPhoto:'Добавить фото', message:'Введите сообщение', save:'Сохранить', deleteAccount:'Удалить аккаунт', searchResults:'Результаты поиска', categories:'Категории', recently:'Недавно просмотренные', loadMore:'Показать ещё', retry:'Повторить' },
+  en: { home:'Home', favorites:'Favorites', catalog:'Catalog', chats:'Chats', profile:'Profile', map:'Map', language:'Language', searchPlaceholder:'Search products and categories', hello:'Welcome', hero:'Find the best products nearby', heroText:'Compare prices, discover stores on the map and build a route.', explore:'Browse catalog', openMap:'Open map', recommendations:'Recommendations', nearby:'Nearby stores', all:'All', login:'Sign in', logout:'Sign out', notifications:'Notifications', wallet:'Wallet and purchases', settings:'Settings', help:'Help and support', account:'My account', empty:'Nothing here yet', price:'Price', route:'Build route', write:'Message seller', reviews:'Reviews', send:'Send', addPhoto:'Add photo', message:'Enter a message', save:'Save', deleteAccount:'Delete account', searchResults:'Search results', categories:'Categories', recently:'Recently viewed', loadMore:'Load more', retry:'Retry' },
+  uz: { home:'Bosh sahifa', favorites:'Sevimlilar', catalog:'Katalog', chats:'Chatlar', profile:'Profil', map:'Xarita', language:'Til', searchPlaceholder:'Mahsulot va toifalarni qidirish', hello:'Xush kelibsiz', hero:'Yaqindagi eng yaxshi mahsulotlarni toping', heroText:'Narxlarni solishtiring, xaritada do‘konlarni toping va yo‘nalish tuzing.', explore:'Katalogni ko‘rish', openMap:'Xaritani ochish', recommendations:'Tavsiyalar', nearby:'Yaqindagi do‘konlar', all:'Barchasi', login:'Kirish', logout:'Chiqish', notifications:'Bildirishnomalar', wallet:'Hamyon va xaridlar', settings:'Sozlamalar', help:'Yordam', account:'Mening hisobim', empty:'Hozircha bu yer bo‘sh', price:'Narx', route:'Yo‘nalish', write:'Sotuvchiga yozish', reviews:'Sharhlar', send:'Yuborish', addPhoto:'Rasm qo‘shish', message:'Xabar kiriting', save:'Saqlash', deleteAccount:'Hisobni o‘chirish', searchResults:'Qidiruv natijalari', categories:'Toifalar', recently:'Yaqinda ko‘rilgan', loadMore:'Yana ko‘rsatish', retry:'Qayta urinish' },
 };
 
 const state = {
@@ -14,6 +20,9 @@ const state = {
   user: JSON.parse(localStorage.getItem('mm_web_user') || 'null'),
   language: localStorage.getItem('mm_web_language') || 'ru',
   products: [], shops: [], categories: [], favorites: new Set(), recent: JSON.parse(localStorage.getItem('mm_web_recent') || '[]'),
+  productCache: new Map(), productDetailRequests: new Map(),
+  catalogLoaded: false, shopsLoaded: false, categoriesLoaded: false,
+  catalogQuery: {}, catalogOffset: 0, catalogHasMore: false, catalogLoading: false, catalogRequestId: 0,
   chats: [], activeChat: null, pendingFile: null, map: null, markers: [], loading: false,
   activeProduct: null, productImageIndex: 0,
 };
@@ -27,12 +36,19 @@ const imageUrl = (raw) => { const value=String(raw||'').trim(); return value ? (
 const authHeaders = () => state.token ? {Authorization:`Bearer ${state.token}`} : {};
 
 async function api(path, options={}) {
-  const headers = {...authHeaders(), ...(options.body instanceof FormData ? {} : {'Content-Type':'application/json'}), ...(options.headers||{})};
+  if(!API_BASE)throw new Error('Адрес сервера не настроен. Обновите страницу или обратитесь в поддержку.');
+  const {auth=true, ...requestOptions}=options;
+  const headers = {...(auth?authHeaders():{}), ...(options.body instanceof FormData ? {} : {'Content-Type':'application/json'}), ...(options.headers||{})};
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),API_REQUEST_TIMEOUT_MS);
   let response;
   try {
-    response = await fetch(`${API_BASE}${path}`, {...options, headers});
-  } catch (_) {
+    response = await fetch(`${API_BASE}${path}`, {...requestOptions, headers, signal:controller.signal});
+  } catch (error) {
+    if(controller.signal.aborted)throw new Error('Сервер отвечает слишком долго. Проверьте интернет и повторите попытку.');
     throw new Error('Не удалось подключиться к серверу MapMarket. Проверьте интернет и откройте сайт по официальной ссылке.');
+  } finally {
+    clearTimeout(timeout);
   }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || `Ошибка ${response.status}`);
@@ -72,7 +88,7 @@ async function navigate(route, data=null) {
     else if(route==='notifications') await renderNotifications();
     else if(route==='search') await renderSearch(data || '');
     else if(route==='product') await renderProductDetails(Number(data));
-  } catch(error) { $('#view').innerHTML=emptyState('triangle-alert', error.message); }
+  } catch(error) { $('#view').innerHTML=errorState(error); }
   refreshIcons();
 }
 
@@ -82,19 +98,83 @@ async function bootstrap() {
     try { const me=await api('/users/me'); state.user=me.user; persistSession(); await loadFavorites(); }
     catch { logout(false); }
   }
-  await Promise.all([loadProducts(), loadShops(), loadCategories()]);
-  navigate('home');
+  const initialLoads=await Promise.allSettled([loadProducts(), loadShops(), loadCategories()]);
+  const initialFailure=initialLoads.find(result=>result.status==='rejected');
+  if(initialFailure){state.route='home';state.routeData=null;renderNavigation();$('#view').innerHTML=errorState(initialFailure.reason);}
+  else navigate('home');
   if(state.token) { checkNotifications(); checkPendingPurchase(); }
 }
 
-async function loadProducts(params={}) { const qs=new URLSearchParams({lang:state.language,...params}); state.products=await api(`/products?${qs}`); return state.products; }
-async function loadShops() { state.shops=await api('/shops'); return state.shops; }
-async function loadCategories() { state.categories=await api('/products/categories'); return state.categories; }
+const CATALOG_PAGE_SIZE = 24;
+const PRODUCT_DETAIL_CACHE_TTL_MS = 60_000;
+const PRODUCT_CACHE_MAX_ENTRIES = 250;
+function productCacheKey(id, language=state.language) { return `${language}:${Number(id)}`; }
+function cacheProduct(product, {language=state.language, detailed=false}={}) {
+  const id=Number(product?.id);
+  if(!Number.isInteger(id)||id<=0)return null;
+  const key=productCacheKey(id,language), previous=state.productCache.get(key);
+  const entry={product:{...(previous?.product||{}),...product},detailed:detailed||Boolean(previous?.detailed),fetchedAt:detailed?Date.now():(previous?.fetchedAt||0)};
+  state.productCache.delete(key);
+  state.productCache.set(key,entry);
+  while(state.productCache.size>PRODUCT_CACHE_MAX_ENTRIES)state.productCache.delete(state.productCache.keys().next().value);
+  return entry;
+}
+function getCachedProduct(id, language=state.language) {
+  return state.productCache.get(productCacheKey(id,language)) || null;
+}
+async function fetchProductDetails(id, language=state.language) {
+  const key=productCacheKey(id,language), existing=state.productDetailRequests.get(key);
+  if(existing)return existing;
+  const request=api(`/products/${Number(id)}?lang=${encodeURIComponent(language)}`)
+    .then(product=>cacheProduct(product,{language,detailed:true}).product)
+    .finally(()=>state.productDetailRequests.delete(key));
+  state.productDetailRequests.set(key,request);
+  return request;
+}
+async function loadProducts(params={}, {append=false}={}) {
+  if (append && state.catalogLoading) return state.products;
+  if (append && !state.catalogHasMore) return state.products;
+  if (!append) {
+    state.catalogQuery = {...params};
+    state.catalogOffset = 0;
+    state.catalogHasMore = true;
+    state.products = [];
+  }
+  const requestId=++state.catalogRequestId;
+  state.catalogLoading = true;
+  try {
+    const qs = new URLSearchParams({lang:state.language,limit:String(CATALOG_PAGE_SIZE),offset:String(state.catalogOffset),...state.catalogQuery});
+    const page = await api(`/products?${qs}`);
+    if (requestId!==state.catalogRequestId) return state.products;
+    const products = Array.isArray(page) ? page : [];
+    for(const product of products)cacheProduct(product);
+    if (append) {
+      const known = new Set(state.products.map(product => Number(product.id)));
+      for (const product of products) {
+        const id=Number(product.id);
+        if (known.has(id)) continue;
+        known.add(id);
+        state.products.push(product);
+      }
+    } else {
+      state.products = products;
+    }
+    state.catalogOffset += products.length;
+    state.catalogHasMore = products.length === CATALOG_PAGE_SIZE;
+    state.catalogLoaded = true;
+    return state.products;
+  } finally {
+    if (requestId===state.catalogRequestId) state.catalogLoading = false;
+  }
+}
+async function loadShops() { state.shops=await api('/shops');state.shopsLoaded=true;return state.shops; }
+async function loadCategories() { state.categories=await api('/products/categories');state.categoriesLoaded=true;return state.categories; }
 async function loadFavorites() { if(!state.token)return; const rows=await api(`/users/me/favorites?lang=${state.language}`); state.favorites=new Set(rows.map(x=>Number(x.id||x.product_id))); }
 function persistSession(){ localStorage.setItem('mm_web_token',state.token); localStorage.setItem('mm_web_user',JSON.stringify(state.user)); localStorage.setItem('mm_web_language',state.language); }
 function logout(render=true){ state.token='';state.user=null;state.favorites.clear();localStorage.removeItem('mm_web_token');localStorage.removeItem('mm_web_user');if(render)navigate('home');renderNavigation(); }
 
 function emptyState(ico='package-open', text=t('empty')) { return `<div class="empty"><div>${icon(ico,52)}<h3>${esc(text)}</h3></div></div>`; }
+function errorState(error) { return `<div class="empty"><div>${icon('triangle-alert',52)}<h3>${esc(error?.message||'Не удалось загрузить данные.')}</h3><button class="button" data-retry-route>${t('retry')}</button></div></div>`; }
 function pageHead(title, subtitle=''){return `<div class="page-head"><div>${subtitle?`<p class="eyebrow">${esc(subtitle)}</p>`:''}<h1>${esc(title)}</h1></div></div>`;}
 
 function productCard(p) {
@@ -111,7 +191,7 @@ function productGrid(items){return items.length?`<div class="product-grid">${ite
 function storeCard(s){return `<button class="store-card" data-store="${Number(s.id)}"><img src="${esc(imageUrl(s.logo_url))}" alt=""><span><b>${esc(s.name||'Магазин')}</b><small class="muted">${esc(s.specialization||s.address||'')}</small></span></button>`;}
 
 async function renderHome(){
-  if(!state.products.length) await loadProducts(); if(!state.shops.length)await loadShops();
+  if(!state.catalogLoaded) await loadProducts(); if(!state.shopsLoaded)await loadShops();
   let recommended=[]; if(state.token){try{recommended=await api(`/products/recommendations?lang=${state.language}`);}catch{}}
   const items=recommended.length?recommended:state.products.slice(0,8);
   $('#view').innerHTML=`<section class="hero"><div><p class="eyebrow" style="color:#bcd3ff">MAPMARKET</p><h1>${t('hero')}</h1><p>${t('heroText')}</p><div class="hero-actions"><button class="button white" data-route="catalog">${icon('layout-grid')} ${t('explore')}</button><button class="button" data-route="map">${icon('map')} ${t('openMap')}</button></div></div><div class="hero-art"><img src="assets/mapmarket-logo.png" alt=""></div></section>
@@ -122,18 +202,44 @@ async function renderHome(){
 
 async function renderCatalog(category='') {
   const params=category?{category}:{}; const items=await loadProducts(params);
-  $('#view').innerHTML=`${pageHead(t('catalog'),'MAPMARKET')}<div class="chips"><button class="chip ${!category?'active':''}" data-category="">${t('all')}</button>${state.categories.map(c=>`<button class="chip ${category===c?'active':''}" data-category="${esc(c)}">${esc(c)}</button>`).join('')}</div>${productGrid(items)}`;
+  $('#view').innerHTML=catalogPageMarkup(category,items);
 }
 
 async function renderSearch(query){
   const items=await loadProducts({q:query,catalog_search:'true'});
-  $('#view').innerHTML=`${pageHead(t('searchResults'),query)}${productGrid(items)}`;
+  $('#view').innerHTML=searchPageMarkup(query,items);
   const recent=[query,...JSON.parse(localStorage.getItem('mm_web_queries')||'[]').filter(x=>x!==query)].slice(0,8);localStorage.setItem('mm_web_queries',JSON.stringify(recent));
+}
+
+function catalogPageMarkup(category,items) {
+  return `${pageHead(t('catalog'),'MAPMARKET')}<div class="chips"><button class="chip ${!category?'active':''}" data-category="">${t('all')}</button>${state.categories.map(c=>`<button class="chip ${category===c?'active':''}" data-category="${esc(c)}">${esc(c)}</button>`).join('')}</div>${productGrid(items)}${loadMoreMarkup()}`;
+}
+
+function searchPageMarkup(query,items) {
+  return `${pageHead(t('searchResults'),query)}${productGrid(items)}${loadMoreMarkup()}`;
+}
+
+function loadMoreMarkup() {
+  return state.catalogHasMore
+    ? `<div class="load-more-wrap"><button class="button soft" data-load-more-products>${t('loadMore')}</button></div>`
+    : '';
+}
+
+async function loadMoreProducts() {
+  if (state.catalogLoading || !state.catalogHasMore || !['catalog','search'].includes(state.route)) return;
+  const route=state.route, routeData=state.routeData;
+  await loadProducts(state.catalogQuery,{append:true});
+  if (state.route!==route || state.routeData!==routeData) return;
+  $('#view').innerHTML=route==='catalog'
+    ? catalogPageMarkup(routeData||'',state.products)
+    : searchPageMarkup(routeData||'',state.products);
+  refreshIcons();
 }
 
 async function renderFavorites(){
   if(!requireAuth(()=>navigate('favorites')))return navigate('home'); await loadFavorites();
   const items=await api(`/users/me/favorites?lang=${state.language}`);
+  for(const product of items)cacheProduct(product);
   $('#view').innerHTML=`${pageHead(t('favorites'),'MAPMARKET')}${productGrid(items)}`;
 }
 
@@ -144,11 +250,28 @@ async function toggleFavorite(id,button){
 }
 
 async function renderProductDetails(id){
-  const p=await api(`/products/${id}?lang=${state.language}`);
-  state.activeProduct=p; state.productImageIndex=0;
+  const language=state.language;
+  const cached=getCachedProduct(id,language)?.product || state.products.find(product=>Number(product.id)===Number(id));
+  if(cached){cacheProduct(cached,{language});state.activeProduct=cached;state.productImageIndex=0;renderProductDetailsBody();refreshIcons();}
+  const entry=getCachedProduct(id,language);
+  if(!entry?.detailed || Date.now()-entry.fetchedAt>=PRODUCT_DETAIL_CACHE_TTL_MS){
+    const refresh=fetchProductDetails(id,language);
+    if(!cached){
+      const product=await refresh;
+      if(state.route!=='product'||Number(state.routeData)!==Number(id)||state.language!==language)return;
+      state.activeProduct=product;
+    }else{
+      refresh.then(product=>{
+        if(state.route==='product'&&Number(state.routeData)===Number(id)&&state.language===language){state.activeProduct=product;renderProductDetailsBody();refreshIcons();}
+      }).catch(error=>console.warn('Product detail refresh failed; showing cached data.',error));
+    }
+  }
+  if(state.route!=='product'||Number(state.routeData)!==Number(id)||state.language!==language)return;
+  const p=state.activeProduct||cached;
+  if(!p)return;
   state.recent=[p,...state.recent.filter(x=>Number(x.id)!==Number(id))].slice(0,20);
   localStorage.setItem('mm_web_recent',JSON.stringify(state.recent));
-  renderProductDetailsBody();
+  if(!cached)renderProductDetailsBody();
 }
 function renderProductDetailsBody(){
   const p=state.activeProduct; if(!p)return;
@@ -229,18 +352,21 @@ async function checkPendingPurchase(){try{const data=await api('/rewards/custome
 function showHelp(){const topics=[['search','Поиск и карта','Товары, магазины, расстояние и маршрут'],['archive','Товары, каталог и избранное','Цена, скидка, наличие и сохранённые товары'],['message-square','Связь с продавцом','Чат и фотографии'],['star','Отзывы и рейтинги','Оценка товара после покупки'],['shield','Безопасность и поддержка','Аккаунт, данные и помощь']];openModal(`<div class="settings-list">${topics.map(x=>`<div class="list-card"><span class="list-icon">${icon(x[0])}</span><span><b>${x[1]}</b><small>${x[2]}</small></span>${icon('chevron-right')}</div>`).join('')}</div>`,t('help'));}
 function showLanguage(){openModal(`<div class="settings-list">${[['ru','Русский'],['en','English'],['uz','O‘zbekcha']].map(([code,label])=>`<button class="list-card" data-language="${code}"><span class="list-icon">${code===state.language?icon('check'):icon('languages')}</span><span><b>${label}</b></span></button>`).join('')}</div>`,t('language'));}
 
-function showAuth(after){
-  openModal(`<div class="auth-intro"><img class="auth-logo" src="assets/mapmarket-logo.png" alt=""><div><p class="eyebrow">MAPMARKET</p><h2>Вход для покупателей</h2><p class="auth-copy">Войдите, чтобы сохранять товары, писать продавцам и получать покупки в кошелёк.</p></div></div><form id="authForm" class="form"><div class="field auth-name hidden"><label>Ваше имя</label><input name="name" autocomplete="name" placeholder="Например, Лола"></div><div class="field"><label>Номер телефона</label><input name="phone" autocomplete="tel" inputmode="tel" placeholder="+998 90 123 45 67" required></div><div class="field"><label>Пароль</label><input type="password" name="password" autocomplete="current-password" placeholder="Минимум 8 символов" required minlength="8"><small class="field-note">Не менее 8 символов, одна буква и одна цифра.</small></div><button class="button auth-submit" name="mode" value="login">Войти</button><button type="button" class="button soft" data-register-toggle>Создать аккаунт</button></form>`,'');$('#authForm').dataset.after=after?'1':'';
-}
+const buyerAuth=createBuyerAuth({api,apiBase:API_BASE,language:()=>state.language,escape:esc,openModal,closeModal,
+  async onSession(data,after){state.token=data.token;state.user=data.user;persistSession();renderNavigation();await loadFavorites().catch(error=>toast(error.message,true));if(typeof after==='function')await after();else await navigate('home');}
+});
+function showAuth(after){buyerAuth.open(after);}
 
-function openModal(content,title='',wide=false){$('#modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal ${wide?'wide':''}"><div class="modal-head"><h2>${esc(title)}</h2><button class="icon-button" data-close-modal>${icon('x')}</button></div><div class="modal-body">${content}</div></div></div>`;refreshIcons();}
-function closeModal(){ $('#modalRoot').innerHTML=''; }
+function openModal(content,title='',wide=false){buyerAuth.cancel();$('#modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal ${wide?'wide':''}"><div class="modal-head"><h2>${esc(title)}</h2><button class="icon-button" data-close-modal>${icon('x')}</button></div><div class="modal-body">${content}</div></div></div>`;refreshIcons();}
+function closeModal(){ buyerAuth.cancel();$('#modalRoot').innerHTML=''; }
 
 async function showReviews(productId){const d=await api(`/products/${productId}/reviews`);openModal(`<div class="stat"><small>Средняя оценка</small><b>${Number(d.average_rating||0).toFixed(1)} ★</b></div><div class="settings-list" style="margin-top:14px">${(d.reviews||[]).map(r=>`<div class="list-card"><span class="avatar">${esc((r.buyer_name||'П')[0])}</span><span><b>${esc(r.buyer_name||'Покупатель')} · ${'★'.repeat(Number(r.rating||0))}</b><small>${esc(r.text||'')}</small></span></div>`).join('')||emptyState()}</div>${state.token?`<form id="reviewForm" class="form section" data-product-id="${productId}"><div class="field"><label>Оценка</label><select name="rating"><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></div><div class="field"><label>Комментарий</label><textarea name="text"></textarea></div><button class="button">${t('send')}</button></form>`:''}`,t('reviews'));
 }
 
 function bindGlobalEvents(){
   document.addEventListener('click',async event=>{
+    const moreProducts=event.target.closest('[data-load-more-products]');if(moreProducts){moreProducts.disabled=true;loadMoreProducts().catch(error=>{if(moreProducts.isConnected)moreProducts.disabled=false;toast(error.message,true);});return;}
+    const retryRoute=event.target.closest('[data-retry-route]');if(retryRoute){const route=state.route,routeData=state.routeData;try{if(route==='home'){const pending=[];if(!state.catalogLoaded)pending.push(loadProducts());if(!state.shopsLoaded)pending.push(loadShops());if(!state.categoriesLoaded)pending.push(loadCategories());const results=await Promise.allSettled(pending);const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;}await navigate(route,routeData);}catch(error){$('#view').innerHTML=errorState(error);}return;}
     const route=event.target.closest('[data-route]');if(route){navigate(route.dataset.route);return;}
     const close=event.target.closest('[data-close-modal]');if(close||event.target.classList.contains('modal-backdrop')){closeModal();return;}
     const product=event.target.closest('[data-product]');if(product&&!event.target.closest('[data-favorite]')){navigate('product',Number(product.dataset.product));return;}
@@ -262,8 +388,9 @@ function bindGlobalEvents(){
     if(event.target.closest('[data-interests]')){showInterests().catch(e=>toast(e.message,true));return;}
     if(event.target.closest('[data-help]')){showHelp();return;}
     if(event.target.closest('[data-action="language"]')){showLanguage();return;}
-    const lang=event.target.closest('[data-language]');if(lang){state.language=lang.dataset.language;persistSession();closeModal();await Promise.all([loadProducts(),loadCategories()]);navigate(state.route);return;}
-    if(event.target.closest('[data-register-toggle]')){const form=$('#authForm');form.classList.toggle('registering');$('.auth-name').classList.toggle('hidden');const reg=form.classList.contains('registering');event.target.textContent=reg?'У меня уже есть аккаунт':'Создать аккаунт';form.querySelector('button[name="mode"]').textContent=reg?'Зарегистрироваться':'Войти';return;}
+    const lang=event.target.closest('[data-language]');if(lang){const route=state.route,routeData=state.routeData;state.language=lang.dataset.language;state.products=[];persistSession();closeModal();await loadCategories();navigate(route,routeData);return;}
+    if(event.target.closest('[data-auth-phone]')){buyerAuth.changePhone();return;}
+    if(event.target.closest('[data-auth-resend]')){await buyerAuth.resend();return;}
     if(event.target.closest('[data-product-image]')){state.productImageIndex=Number(event.target.closest('[data-product-image]').dataset.productImage);renderProductDetailsBody();refreshIcons();return;}
     if(event.target.closest('[data-back-catalog]')){navigate('catalog');return;}
     const reviews=event.target.closest('[data-product-reviews]');if(reviews){showReviews(Number(reviews.dataset.productReviews));return;}
@@ -274,7 +401,7 @@ function bindGlobalEvents(){
   document.addEventListener('submit',async event=>{
     event.preventDefault();const form=event.target;
     try{
-      if(form.id==='authForm'){const fd=new FormData(form);const registering=form.classList.contains('registering');const phone=String(fd.get('phone')||'').replace(/[\s()-]/g,'');const payload={phone,password:fd.get('password'),client:'buyer',...(registering?{name:fd.get('name'),role:'buyer',language_code:state.language}:{})};const data=await api(registering?'/auth/register':'/auth/login',{method:'POST',body:JSON.stringify(payload)});state.token=data.token;state.user=data.user;persistSession();closeModal();await loadFavorites();renderNavigation();navigate('home');}
+      if(form.id==='authForm'){await buyerAuth.submit(form,event.submitter?.value);return;}
       if(form.id==='accountForm'){const fd=new FormData(form);const d=await api('/users/me/profile',{method:'PUT',body:JSON.stringify({name:fd.get('name'),language_code:state.language})});state.user=d.user;const avatar=fd.get('avatar');if(avatar?.size){const upload=new FormData();upload.append('avatar',avatar);const avatarResult=await api('/users/me/avatar',{method:'PUT',body:upload});state.user=avatarResult.user||state.user;}persistSession();closeModal();renderProfile();}
       if(form.id==='cardForm'){const fd=new FormData(form);localStorage.setItem('mm_web_card',JSON.stringify({number:fd.get('number'),expiry:fd.get('expiry')}));closeModal();toast('Карта сохранена');}
       if(form.id==='interestsForm'){const fd=new FormData(form);const categories=fd.getAll('category');if(categories.length!==3)throw new Error('Выберите ровно три категории.');await api('/users/me/preferences',{method:'POST',body:JSON.stringify({categories})});closeModal();toast('Интересы сохранены');}
