@@ -51,7 +51,7 @@ export function authFlow({ api, client, baseUrl, onSession, locationPicker }) {
     codeLength = Number(result.code_length) || 6;
     const deliveryChannel = result.delivery_channel || channel;
     render(
-      `<p class="notice">Код отправлен ${deliveryChannel === "sms" ? "по SMS" : "в Telegram"} на ${esc(phone)}.</p><form class="form">${field("Код", "code", "", "text", `required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${codeLength}}" maxlength="${codeLength}"`)}<button class="button">Продолжить</button></form>${client === "buyer" && deliveryChannel === "telegram" ? '<p class="muted">Откройте чат Verification Codes.</p><a class="button soft" href="https://t.me/" target="_blank" rel="noopener">Открыть Telegram</a>' : ""}${button("Получить код через SMS", "sms")}${button("Изменить номер", "phone")}`,
+      `<p class="notice">Код отправлен ${deliveryChannel === "sms" ? "по SMS" : "в Telegram"} на ${esc(phone)}.</p><form class="form">${field("Код", "code", "", "text", `required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${codeLength}}" maxlength="${codeLength}"`)}<button class="button">Продолжить</button></form>${client === "buyer" && deliveryChannel === "telegram" ? '<p class="muted">Откройте чат Verification Codes.</p><a class="button soft" href="https://t.me/" target="_blank" rel="noopener">Открыть Telegram</a>' : ""}<div class="actions auth-actions">${button("Получить код через SMS", "sms")}${button("Изменить номер", "phone")}</div>`,
     );
     $("form", body).onsubmit = (event) => {
       event.preventDefault();

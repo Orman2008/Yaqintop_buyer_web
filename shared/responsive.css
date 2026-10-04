@@ -78,3 +78,37 @@ button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}
 }
 @media(max-width:359px){.view,.web-content{padding-inline:12px}.product-grid{gap:8px}.hero{padding:20px}.product-body h3{font-size:14px}.product-body .price{font-size:16px}.site-brand span{font-size:14px}.toolbar{gap:8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* Shared spacing for Buyer and Seller forms, dialogs and action groups. */
+:root{--layout-gap:12px;--form-gap:16px}
+.actions,.toolbar,.hero-actions,.header-actions,.site-actions{display:flex;flex-wrap:wrap;align-items:center;gap:var(--layout-gap);min-width:0}
+.actions>*,.toolbar>*,.hero-actions>*,.site-actions>*{min-width:0;max-width:100%}
+.button,.site-button{gap:8px;line-height:1.4;white-space:normal;overflow-wrap:anywhere;flex-shrink:0;text-align:center}
+.form{display:grid;gap:var(--form-gap);min-width:0}
+.form-row{gap:var(--form-gap)}
+.field{min-width:0;display:grid;gap:8px}
+.field input,.field select,.field textarea{min-width:0;max-width:100%}
+.modal-body{display:grid;gap:var(--form-gap);align-content:start}
+.modal-body>p,.modal-body>form{margin-block:0}
+.modal-body>.form-error:empty{display:none}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.modal-head h2{margin:0}
+.auth-actions{align-items:stretch}
+.auth-actions>.button{flex:1 1 200px}
+.auth-intro h2{margin-block:4px 8px}
+.page-head,.section-head{gap:16px;flex-wrap:wrap}
+.page-head h1+p,.section-head h2+p{margin-top:8px}
+.list-card>span{min-width:0;display:grid;gap:6px;text-align:start}
+.list-card small{display:block;white-space:normal;overflow-wrap:anywhere}
+.card>.actions,.card>.toolbar{margin-top:16px}
+.card>h2+p,.card>h3+p{margin-top:8px}
+.card>p+.actions,.card>p+.button{margin-top:16px}
+.table-wrap td>.button+.button{margin-inline-start:8px;margin-top:8px}
+.settings-list{display:grid;gap:12px}
+@media(max-width:767px){
+ .toolbar{align-items:stretch}
+ .toolbar>input,.toolbar>select,.toolbar>.field{flex:1 1 160px}
+ .modal-body .actions>.button{flex:1 1 160px}
+ .modal-head h2{font-size:clamp(20px,5vw,26px)}
+ .header-actions{gap:10px}
+}
