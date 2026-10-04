@@ -6,26 +6,24 @@
     <script src="shared/appearance-init.js"></script>
     <link rel="stylesheet" href="shared/appearance.css" />
     <meta name="theme-color" content="#f6f8fc" />
-    <meta name="description" content="YAQINTOP MARKET — товары и магазины рядом" />
-    <title>YAQINTOP MARKET</title>
+    <meta name="description" content="Yaqintop market — товары и магазины рядом" />
+    <title>Yaqintop market</title>
     <link rel="icon" type="image/png" href="assets/yaqintop-logo.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
-    <link rel="stylesheet" href="styles.css?v=20261003-1" />
-    <meta property="og:title" content="YAQINTOP MARKET — товары и магазины рядом" />
+    <link rel="stylesheet" href="styles.css?v=20261005-2" />
+    <meta property="og:title" content="Yaqintop market — товары и магазины рядом" />
     <meta property="og:description" content="Найдите товар, сравните предложения магазинов и постройте маршрут." />
       <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="assets/yaqintop-icon-192.png" />
       <link rel="stylesheet" href="shared/responsive.css" />
+      <link rel="stylesheet" href="market.css?v=20261005-2" />
   </head>
   <body>
     <div id="app" class="app-shell">
       <aside class="desktop-sidebar">
-        <button class="brand" data-route="home" aria-label="YAQINTOP MARKET">
+        <button class="brand" data-route="home" aria-label="Yaqintop market">
           <img src="assets/yaqintop-logo.png" alt="" />
-          <span><b>YAQINTOP MARKET</b><small>Покупателям</small></span>
+          <span><b>Yaqintop market</b><small>Покупателям</small></span>
         </button>
         <nav id="desktopNav" class="desktop-nav"></nav>
         <div class="sidebar-bottom">
@@ -36,7 +34,8 @@
 
       <main class="main-column">
         <header class="topbar">
-          <button class="mobile-brand brand" data-route="home"><img src="assets/yaqintop-logo.png" alt="" /><b>YAQINTOP MARKET</b></button>
+          <button class="button catalog-shortcut" data-route="catalog"><i data-lucide="layout-grid"></i><span data-i18n="catalog">Каталог</span></button>
+          <button class="mobile-brand brand" data-route="home"><img src="assets/yaqintop-logo.png" alt="" /><b>Yaqintop market</b></button>
           <div class="global-search">
             <i data-lucide="search"></i>
             <input id="globalSearch" autocomplete="off" data-i18n-placeholder="searchPlaceholder" placeholder="Поиск товаров и категорий" />
@@ -60,6 +59,7 @@
     <script src="vendor/leaflet/leaflet.js"></script>
     <script src="vendor/qrcode.js"></script>
     <script src="runtime-config.js"></script>
-    <script type="module" src="app.js?v=20261003-1"></script>
+    <script src="startup.js?v=20261005-2"></script>
+    <script type="module" src="app.js?v=20261005-2"></script>
   </body>
 </html>

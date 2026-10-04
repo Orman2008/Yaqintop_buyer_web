@@ -1,6 +1,6 @@
 {
-  "name": "YAQINTOP MARKET",
-  "short_name": "YAQINTOP MARKET",
+  "name": "Yaqintop market",
+  "short_name": "Yaqintop market",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

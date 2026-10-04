@@ -1,0 +1,218 @@
+:root {
+  --motion-fast: 130ms;
+  --motion-state: 160ms;
+  --motion-navigation: 240ms;
+  --motion-modal: 220ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --on-primary: #fff;
+  --primary-readable: #0874ab;
+  --success: #15803d;
+  --warning: #9a6700;
+  --elevated: #fff;
+}
+:root[data-theme="dark"] {
+  --background: #101620;
+  --surface: #192230;
+  --surface-2: #222e3e;
+  --elevated: #243245;
+  --ink: #edf2fa;
+  --muted: #b0bdd0;
+  --border: #3b4b61;
+  --primary: #0b8fd1;
+  --primary-dark: #0874ab;
+  --primary-readable: #70caff;
+  --primary-soft: #173951;
+  --danger: #ef6868;
+  --success: #71db9c;
+  --warning: #f5ca73;
+  --shadow: 0 12px 34px #0004;
+}
+body,
+input,
+textarea,
+select,
+.web-sidebar,
+.web-header,
+.card,
+.product-card,
+.web-dialog,
+.category-card,
+.table-wrap,
+.skip-link {
+  background-color: var(--surface);
+  color: var(--ink);
+}
+body {
+  background-color: var(--background);
+}
+input,
+textarea,
+select,
+.web-dialog {
+  border-color: var(--border);
+}
+a,
+.button.soft,
+.category-card span {
+  color: var(--primary-readable);
+}
+.button {
+  color: var(--on-primary);
+}
+.button {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+  position: relative;
+}
+.button[aria-busy="true"]::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: busy-rotate 0.7s linear infinite;
+}
+@keyframes busy-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.button.soft {
+  background: var(--primary-soft);
+}
+.web-dialog {
+  background: var(--elevated);
+}
+.notice,
+.message.mine {
+  background: var(--primary-soft);
+  color: var(--ink);
+}
+.form-error,
+.error {
+  color: var(--danger);
+}
+.button.danger {
+  background: #b42318;
+  border-color: #b42318;
+  color: #fff;
+}
+.cover {
+  background-color: var(--surface-2);
+}
+table,
+.detail-image,
+.gallery img {
+  background-color: var(--surface);
+  color: var(--ink);
+}
+.toast {
+  background: #243245;
+  color: #edf2fa;
+  border: 1px solid var(--border);
+}
+/* Uploaded images, logos, QR canvases and map tiles are never inverted/filtered. */
+.leaflet-control,
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--surface);
+  color: var(--ink);
+}
+.leaflet-bar a {
+  background: var(--surface);
+  color: var(--ink);
+}
+button,
+.button,
+.category-card,
+[data-nav] {
+  transition:
+    transform var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-state),
+    color var(--motion-state),
+    border-color var(--motion-state),
+    box-shadow var(--motion-state);
+}
+button:not(:disabled):active,
+.button:not(:disabled):active {
+  transform: scale(0.98);
+}
+.icon-button:not(:disabled):active {
+  transform: scale(0.95);
+}
+button:disabled {
+  transform: none;
+  cursor: not-allowed;
+}
+:focus-visible {
+  outline: 3px solid var(--primary-readable);
+  outline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .button:not(:disabled):hover,
+  .category-card:hover {
+    box-shadow: 0 3px 10px #0002;
+  }
+}
+.web-sidebar nav {
+  position: relative;
+  isolation: isolate;
+}
+.web-sidebar nav a {
+  position: relative;
+  z-index: 1;
+}
+.web-sidebar nav a.active {
+  background: transparent;
+  color: var(--primary-readable);
+}
+.nav-motion-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  border-radius: 16px;
+  background: var(--primary-soft);
+  pointer-events: none;
+  transition:
+    transform var(--motion-navigation) var(--motion-ease),
+    width var(--motion-navigation),
+    height var(--motion-navigation);
+}
+.web-dialog[open] {
+  animation: modal-enter var(--motion-modal) var(--motion-ease);
+}
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button,
+  .button,
+  .category-card,
+  [data-nav],
+  .nav-motion-indicator {
+    transition: none;
+  }
+  button:active,
+  .button:active,
+  .icon-button:active {
+    transform: none !important;
+  }
+  .web-dialog[open] {
+    animation: none;
+  }
+  .button[aria-busy="true"]::after {
+    animation: none;
+  }
+}

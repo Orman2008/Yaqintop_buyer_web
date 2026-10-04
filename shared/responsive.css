@@ -1,0 +1,80 @@
+/* YAQINTOP Web presentation: tokens follow the current Flutter visual language. */
+@font-face{font-family:Manrope;src:url(../assets/fonts/manrope-regular.ttf) format('truetype');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:Manrope;src:url(../assets/fonts/manrope-medium.ttf) format('truetype');font-style:normal;font-weight:500;font-display:swap}
+@font-face{font-family:Manrope;src:url(../assets/fonts/manrope-semibold.ttf) format('truetype');font-style:normal;font-weight:600;font-display:swap}
+@font-face{font-family:Manrope;src:url(../assets/fonts/manrope-bold.ttf) format('truetype');font-style:normal;font-weight:700 900;font-display:swap}
+:root{--primary:#089bd5;--primary-dark:#0874ab;--primary-readable:#0874ab;--primary-soft:#e8f4fa;--bg:#f7f9fc;--background:#f7f9fc;--surface:#fff;--surface-2:#f2f4f7;--ink:#111827;--muted:#667085;--border:#d0d5dd;--danger:#b42318;--radius-card:20px;--radius-control:16px;--radius-dialog:28px;--space:8px;font-family:Manrope,system-ui,sans-serif;color-scheme:light}
+:root[data-theme=dark]{--bg:#101620;--background:#101620;--surface:#192230;--surface-2:#222e3e;--ink:#edf2fa;--muted:#b0bdd0;--border:#3b4b61;--primary-soft:#173951;--primary-readable:#70caff;--danger:#ff9494;color-scheme:dark}
+body{font-family:Manrope,system-ui,sans-serif;background:var(--background);color:var(--ink);line-height:1.5}
+.store-card,.chip:not(.active){background:var(--surface);color:var(--ink)}
+.store-card>span{min-width:0;text-align:left}
+.store-card b,.store-card small{display:block;overflow-wrap:anywhere}
+.button.soft{background:var(--primary-soft);color:var(--primary-readable)}
+button,input,select,textarea{font-family:inherit}
+h1{font-size:clamp(26px,2.6vw,38px);line-height:1.18;letter-spacing:-.04em}
+h2{font-size:clamp(21px,1.8vw,28px);line-height:1.25;letter-spacing:-.025em}
+h3{line-height:1.3}
+button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--primary-readable);outline-offset:3px}
+.button,.site-button{min-height:44px;border-radius:var(--radius-control)}
+.button:not(.soft):not(.white):not(.danger){background:var(--primary-dark);border-color:var(--primary-dark);color:#fff}
+.desktop-sidebar,.topbar,.mobile-nav,.modal,.modal-head,.chat-list,.chat-room,.profile-hero,.product-card,.list-card,.suggestions{background-color:var(--surface);color:var(--ink)}
+.brand b,.site-brand span,.web-brand{overflow-wrap:anywhere;line-height:1.3}
+.brand b{font-size:13px;letter-spacing:.02em}
+.brand small{font-size:16px;font-weight:700}
+.global-search,input,select,textarea{border-color:var(--border);color:var(--ink)}
+.hero{background:linear-gradient(125deg,#0874ab,#089bd5 65%,#0d7fbc);border-radius:var(--radius-dialog)}
+.hero-art img{object-fit:contain;border-radius:0}
+.product-card{border-radius:var(--radius-card);border-color:var(--border);box-shadow:none}
+.product-card .product-image,.product-card .cover{aspect-ratio:1;object-fit:contain}
+.product-card h3{font-weight:700}
+.product-body h3{margin:12px 0 5px}
+.muted,.page-subtitle{color:var(--muted)}
+.view,.web-content{min-width:0;max-width:1560px;width:100%;margin-inline:auto}
+.web-header,.topbar{min-width:0}
+.web-header #storeName{min-width:0;overflow-wrap:anywhere}
+.table-wrap{max-width:100%;overflow:auto;overscroll-behavior:contain}
+.form-row>*{min-width:0}
+.modal,.web-dialog{max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));border-radius:var(--radius-dialog);overscroll-behavior:contain}
+.modal-head{gap:12px}
+.modal-head h2{min-width:0;overflow-wrap:anywhere}
+.modal-head .icon-button{flex:none}
+.modal-body{min-width:0}
+.auth-intro,.profile-hero{min-width:0}
+.auth-intro>div,.profile-hero>div{min-width:0}
+.chat-layout,.chat-room,.messages{min-height:0}
+.messages,.chat-list{overflow-y:auto;overscroll-behavior:contain}
+@media(min-width:1440px){.product-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(min-width:768px) and (max-width:1023px){.product-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.detail-grid,.product-detail-page{grid-template-columns:1fr 1fr}.product-gallery{position:static}}
+@media(max-width:767px){
+ .desktop-sidebar{display:none}
+ .web-sidebar{display:block;width:100%;height:auto;position:static;padding:12px;border-bottom:1px solid var(--border);background:var(--surface)}
+ .web-sidebar .web-brand,.web-sidebar .sidebar-footer{display:none}
+ .web-sidebar nav{display:flex;max-width:100%;overflow-x:auto;gap:8px;overscroll-behavior-x:contain}
+ .web-sidebar nav a{flex:none;white-space:nowrap;min-height:44px}
+ .main-column,.web-main{margin-left:0}
+ .view,.web-content{padding-inline:16px;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+ .topbar,.web-header{padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top));gap:8px}
+ .mobile-brand{display:none}
+ .global-search{height:48px;border-radius:var(--radius-control)}
+ .global-search input{font-size:14px}
+ .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ .product-card{padding:8px;border-radius:18px}
+ .product-body h3{font-size:15px}
+ .product-body .price{font-size:17px}
+ .web-header{flex-wrap:wrap;align-items:center}
+ .web-header #branchContext{min-width:0;max-width:100%}
+ .form-row,.detail-grid,.product-detail-page{grid-template-columns:1fr}
+ .page-head,.section-head{align-items:flex-start;flex-wrap:wrap;gap:12px}
+ .hero{padding:24px;min-height:0}
+ .hero-actions .button{flex:1 1 140px;justify-content:center}
+ .modal-backdrop{padding:16px;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:max(16px,env(safe-area-inset-bottom))}
+ .modal-body{padding:18px}
+ .auth-intro{gap:12px}
+ .auth-logo{width:52px;height:52px;object-fit:contain;flex:none}
+ .auth-intro h2{font-size:22px}
+ .auth-copy{font-size:14px}
+ .mobile-nav{padding-bottom:env(safe-area-inset-bottom)}
+}
+@media(max-width:359px){.view,.web-content{padding-inline:12px}.product-grid{gap:8px}.hero{padding:20px}.product-body h3{font-size:14px}.product-body .price{font-size:16px}.site-brand span{font-size:14px}.toolbar{gap:8px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}

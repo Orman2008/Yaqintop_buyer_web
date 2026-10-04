@@ -17,11 +17,15 @@ const dictionary = {
   uz: { home:'Bosh sahifa', favorites:'Sevimlilar', catalog:'Katalog', chats:'Chatlar', profile:'Profil', map:'Xarita', language:'Til', searchPlaceholder:'Mahsulot va toifalarni qidirish', hello:'Xush kelibsiz', hero:'Yaqindagi eng yaxshi mahsulotlarni toping', heroText:'Narxlarni solishtiring, xaritada do‘konlarni toping va yo‘nalish tuzing.', explore:'Katalogni ko‘rish', openMap:'Xaritani ochish', recommendations:'Tavsiyalar', nearby:'Yaqindagi do‘konlar', all:'Barchasi', login:'Kirish', logout:'Chiqish', notifications:'Bildirishnomalar', wallet:'Hamyon va xaridlar', settings:'Sozlamalar', help:'Yordam', account:'Mening hisobim', empty:'Hozircha bu yer bo‘sh', price:'Narx', route:'Yo‘nalish', write:'Sotuvchiga yozish', reviews:'Sharhlar', send:'Yuborish', addPhoto:'Rasm qo‘shish', message:'Xabar kiriting', save:'Saqlash', deleteAccount:'Hisobni o‘chirish', searchResults:'Qidiruv natijalari', categories:'Toifalar', recently:'Yaqinda ko‘rilgan', loadMore:'Yana ko‘rsatish', retry:'Qayta urinish' },
 };
 
+function storedJson(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
+  catch { return fallback; }
+}
 const state = {
   route: 'home', token: localStorage.getItem('mm_web_token') || '',
-  user: JSON.parse(localStorage.getItem('mm_web_user') || 'null'),
+  user: storedJson('mm_web_user', null),
   language: localStorage.getItem('mm_web_language') || 'ru',
-  products: [], shops: [], categories: [], favorites: new Set(), recent: JSON.parse(localStorage.getItem('mm_web_recent') || '[]'),
+  products: [], shops: [], categories: [], favorites: new Set(), recent: storedJson('mm_web_recent', []),
   productCache: new Map(), productDetailRequests: new Map(),
   catalogLoaded: false, shopsLoaded: false, categoriesLoaded: false,
   catalogQuery: {}, catalogOffset: 0, catalogHasMore: false, catalogLoading: false, catalogRequestId: 0,
@@ -45,16 +49,19 @@ async function api(path, options={}) {
   const headers = {...(auth?authHeaders():{}), ...(options.body instanceof FormData ? {} : {'Content-Type':'application/json'}), ...(options.headers||{})};
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),API_REQUEST_TIMEOUT_MS);
-  let response;
+  let response, data;
   try {
     response = await fetch(`${API_BASE}${path}`, {...requestOptions, headers, signal:controller.signal});
+    data = await response.json().catch(error => {
+      if (controller.signal.aborted) throw error;
+      return {};
+    });
   } catch (error) {
     if(controller.signal.aborted)throw new Error('Сервер отвечает слишком долго. Проверьте интернет и повторите попытку.');
-    throw new Error('Не удалось подключиться к серверу YAQINTOP MARKET. Проверьте интернет и откройте сайт по официальной ссылке.');
+    throw new Error('Не удалось подключиться к серверу Yaqintop market. Проверьте интернет и откройте сайт по официальной ссылке.');
   } finally {
     clearTimeout(timeout);
   }
-  const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || `Ошибка ${response.status}`);
   return data;
 }
@@ -183,14 +190,26 @@ function errorState(error) { return `<div class="empty"><div>${icon('triangle-al
 function pageHead(title, subtitle=''){return `<div class="page-head"><div>${subtitle?`<p class="eyebrow">${esc(subtitle)}</p>`:''}<h1>${esc(title)}</h1></div></div>`;}
 
 function productCard(p) {
-  const id=Number(p.id); const saved=state.favorites.has(id); const discount=Number(p.discount_percent||0);
+  const id=Number(p.id), saved=state.favorites.has(id);
+  const rawDiscount=Number(p.discount_percent||0), discount=rawDiscount>=0&&rawDiscount<100?rawDiscount:0;
+  const price=Number(p.price||0), salePrice=price*(1-discount/100);
+  const oldPrice=discount>0?price:Number(p.old_price)>price?Number(p.old_price):0;
+  const stock=p.stock_status==='UNCONFIRMED'?'unknown':[true,1,'true'].includes(p.in_stock)?'available':'unavailable';
+  const labels={ru:['Наличие не подтверждено','В наличии','Нет в наличии'],en:['Availability unconfirmed','In stock','Out of stock'],uz:['Mavjudligi tasdiqlanmagan','Mavjud','Mavjud emas']}[state.language]||['Наличие не подтверждено','В наличии','Нет в наличии'];
+  const distance=p.distance_km??p.shop_distance_km;
+  const reviews=Number(p.product_reviews_count??p.reviews_count??0);
+  const shop=state.shops.find(s=>Number(s.id)===Number(p.shop_id));
+  const canRoute=shop&&shop.latitude!=null&&shop.longitude!=null;
   return `<article class="product-card" data-product="${id}">
-    <img class="product-image" src="${esc(imageUrl(p.image_url || p.image_urls?.[0]))}" alt="${esc(p.title)}" loading="lazy" />
+    <div class="product-photo"><img class="product-image" src="${esc(imageUrl(p.image_url || p.image_urls?.[0]))}" alt="${esc(p.title)}" loading="lazy" />
     ${discount>0?`<span class="discount">-${Math.round(discount)}%</span>`:''}
-    <button class="favorite-button ${saved?'active':''}" data-favorite="${id}" aria-label="${t('favorites')}">${icon(saved?'heart':'heart',20)}</button>
-    <div class="product-body"><h3>${esc(p.title||'Товар')}</h3><div class="product-meta">${esc(p.category||p.shop_name||'')}</div>
-    <div class="rating">${icon('star',16)} <b>${Number(p.product_average_rating||p.average_rating||p.rating||0).toFixed(1)}</b><span>(${Number(p.product_reviews_count||p.reviews_count||0)})</span></div>
-    <div class="price-row">${p.old_price&&Number(p.old_price)>Number(p.price)?`<span class="old-price">${money(p.old_price)}</span>`:''}<span class="price">${money(p.price)}</span></div></div></article>`;
+    <button class="favorite-button ${saved?'active':''}" data-favorite="${id}" aria-pressed="${saved}" aria-label="${esc(t('favorites'))}: ${esc(p.title||'')}">${icon('heart',20)}</button></div>
+    <div class="product-body"><button class="product-title" data-product="${id}"><h3>${esc(p.title||'Товар')}</h3></button><div class="product-meta">${esc(p.shop_name||p.category||'')}</div>
+    ${distance!=null&&Number.isFinite(Number(distance))?`<div class="product-distance">${icon('map-pin',13)}${Number(distance)<0.1?'&lt; 0.1':Number(distance).toFixed(1)} km</div>`:''}
+    <div class="product-stock ${stock}">${labels[stock==='unknown'?0:stock==='available'?1:2]}</div>
+    ${reviews>0?`<div class="rating">${icon('star',14)} <b>${Number(p.product_average_rating??p.average_rating??p.rating??0).toFixed(1)}</b><span>(${reviews})</span></div>`:''}
+    <div class="price-row">${oldPrice>0?`<span class="old-price">${money(oldPrice)}</span>`:''}<span class="price">${money(salePrice)}</span></div>
+    ${canRoute?`<button class="button product-route" data-store-route="${Number(p.shop_id)}">${icon('route',16)}${t('route')}</button>`:''}</div></article>`;
 }
 function productGrid(items){return items.length?`<div class="product-grid">${items.map(productCard).join('')}</div>`:emptyState();}
 function storeCard(s){return `<button class="store-card" data-store="${Number(s.id)}"><img src="${esc(imageUrl(s.logo_url))}" alt=""><span><b>${esc(s.name||'Магазин')}</b><small class="muted">${esc(s.specialization||s.address||'')}</small></span></button>`;}
@@ -198,8 +217,8 @@ function storeCard(s){return `<button class="store-card" data-store="${Number(s.
 async function renderHome(){
   if(!state.catalogLoaded) await loadProducts(); if(!state.shopsLoaded)await loadShops();
   let recommended=[]; if(state.token){try{recommended=await api(`/products/recommendations?lang=${state.language}`);}catch{}}
-  const items=recommended.length?recommended:state.products.slice(0,8);
-  $('#view').innerHTML=`<section class="hero"><div><p class="eyebrow" style="color:#bcd3ff">YAQINTOP MARKET</p><h1>${t('hero')}</h1><p>${t('heroText')}</p><div class="hero-actions"><button class="button white" data-route="catalog">${icon('layout-grid')} ${t('explore')}</button><button class="button" data-route="map">${icon('map')} ${t('openMap')}</button></div></div><div class="hero-art"><img src="assets/yaqintop-logo.png" alt=""></div></section>
+  const items=recommended.length?recommended:state.products.slice(0,18);
+  $('#view').innerHTML=`<section class="hero"><div><p class="eyebrow" style="color:#bcd3ff">Yaqintop market</p><h1>${t('hero')}</h1><p>${t('heroText')}</p><div class="hero-actions"><button class="button white" data-route="catalog">${icon('layout-grid')} ${t('explore')}</button><button class="button" data-route="map">${icon('map')} ${t('openMap')}</button></div></div><div class="hero-art"><img src="assets/yaqintop-logo.png" alt=""></div></section>
   <section class="section"><div class="section-head"><h2>${t('categories')}</h2></div><div class="chips"><button class="chip active" data-category="">${t('all')}</button>${state.categories.map(c=>`<button class="chip" data-category="${esc(c)}">${esc(c)}</button>`).join('')}</div></section>
   <section class="section"><div class="section-head"><h2>${t('recommendations')}</h2><button class="button soft" data-route="catalog">${t('all')} ${icon('arrow-right')}</button></div>${productGrid(items)}</section>
   <section class="section"><div class="section-head"><h2>${t('nearby')}</h2><button class="button soft" data-route="map">${t('map')}</button></div><div class="store-grid">${state.shops.slice(0,6).map(storeCard).join('')}</div></section>`;
@@ -217,7 +236,7 @@ async function renderSearch(query){
 }
 
 function catalogPageMarkup(category,items) {
-  return `${pageHead(t('catalog'),'YAQINTOP MARKET')}<div class="chips"><button class="chip ${!category?'active':''}" data-category="">${t('all')}</button>${state.categories.map(c=>`<button class="chip ${category===c?'active':''}" data-category="${esc(c)}">${esc(c)}</button>`).join('')}</div>${productGrid(items)}${loadMoreMarkup()}`;
+  return `${pageHead(t('catalog'),'Yaqintop market')}<div class="chips"><button class="chip ${!category?'active':''}" data-category="">${t('all')}</button>${state.categories.map(c=>`<button class="chip ${category===c?'active':''}" data-category="${esc(c)}">${esc(c)}</button>`).join('')}</div>${productGrid(items)}${loadMoreMarkup()}`;
 }
 
 function searchPageMarkup(query,items) {
@@ -245,7 +264,7 @@ async function renderFavorites(){
   if(!requireAuth(()=>navigate('favorites')))return navigate('home'); await loadFavorites();
   const items=await api(`/users/me/favorites?lang=${state.language}`);
   for(const product of items)cacheProduct(product);
-  $('#view').innerHTML=`${pageHead(t('favorites'),'YAQINTOP MARKET')}${productGrid(items)}`;
+  $('#view').innerHTML=`${pageHead(t('favorites'),'Yaqintop market')}${productGrid(items)}`;
 }
 
 async function toggleFavorite(id,button){
@@ -285,7 +304,7 @@ function renderProductDetailsBody(){
   const specs=[['Бренд',p.brand],['Модель',p.model],['Цвет',p.color],['Размер',p.size],['Наличие',p.in_stock===false?'Нет в наличии':'В наличии']].filter(([,v])=>v);
   $('#view').innerHTML=`<button class="back-link" data-back-catalog>${icon('arrow-left')} Назад к товарам</button>
     <section class="product-detail-page"><div class="product-gallery"><img class="detail-image" src="${esc(imageUrl(active))}" alt="${esc(p.title)}">${images.length>1?`<div class="gallery-thumbs">${images.map((src,index)=>`<button class="gallery-thumb ${index===state.productImageIndex?'active':''}" data-product-image="${index}"><img src="${esc(imageUrl(src))}" alt=""></button>`).join('')}</div>`:''}</div>
-    <div class="detail-info"><p class="eyebrow">${esc(p.category||'YAQINTOP MARKET')}</p><h1>${esc(p.title||'Товар')}</h1><p class="muted">${esc(p.shop_name||'Магазин')}</p><div class="rating">${icon('star')} <b>${Number(p.product_average_rating||p.average_rating||0).toFixed(1)}</b><span>(${Number(p.product_reviews_count||p.reviews_count||0)} отзывов)</span></div><div class="price-row detail-price"><span class="price">${money(p.price)}</span>${p.old_price&&Number(p.old_price)>Number(p.price)?`<span class="old-price">${money(p.old_price)}</span>`:''}</div><div class="hero-actions"><button class="button" data-product-chat="${Number(p.shop_id)}">${icon('message-circle')} ${t('write')}</button><button class="button soft" data-store-route="${Number(p.shop_id)}">${icon('route')} ${t('route')}</button><button class="button ghost" data-product-reviews="${Number(p.id)}">${icon('star')} ${t('reviews')}</button></div>${buyerBranchOffers(p)}<section class="detail-section"><h2>Описание</h2><p class="detail-description">${esc(p.description||'Описание пока не добавлено.')}</p></section>${specs.length?`<section class="detail-section"><h2>Характеристики</h2><div class="spec-list">${specs.map(([label,value])=>`<div><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}</div></section>`:''}</div></section>`;
+    <div class="detail-info"><p class="eyebrow">${esc(p.category||'Yaqintop market')}</p><h1>${esc(p.title||'Товар')}</h1><p class="muted">${esc(p.shop_name||'Магазин')}</p><div class="rating">${icon('star')} <b>${Number(p.product_average_rating||p.average_rating||0).toFixed(1)}</b><span>(${Number(p.product_reviews_count||p.reviews_count||0)} отзывов)</span></div><div class="price-row detail-price"><span class="price">${money(p.price)}</span>${p.old_price&&Number(p.old_price)>Number(p.price)?`<span class="old-price">${money(p.old_price)}</span>`:''}</div><div class="hero-actions"><button class="button" data-product-chat="${Number(p.shop_id)}">${icon('message-circle')} ${t('write')}</button><button class="button soft" data-store-route="${Number(p.shop_id)}">${icon('route')} ${t('route')}</button><button class="button ghost" data-product-reviews="${Number(p.id)}">${icon('star')} ${t('reviews')}</button></div>${buyerBranchOffers(p)}<section class="detail-section"><h2>Описание</h2><p class="detail-description">${esc(p.description||'Описание пока не добавлено.')}</p></section>${specs.length?`<section class="detail-section"><h2>Характеристики</h2><div class="spec-list">${specs.map(([label,value])=>`<div><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}</div></section>`:''}</div></section>`;
 }
 
 function buyerBranchOffers(p){
@@ -294,11 +313,11 @@ function buyerBranchOffers(p){
 }
 async function showStore(shopId){
   const shop=state.shops.find(s=>Number(s.id)===shopId)||{}; const products=await api(`/products?shop_id=${shopId}&lang=${state.language}`);const network=await api(`/shops/${shopId}/locations`);
-  openModal(`<div class="profile-hero"><img class="store-logo" src="${esc(imageUrl(shop.logo_url))}" alt=""><div><p class="eyebrow">YAQINTOP MARKET</p><h2>${esc(shop.name||'Магазин')}</h2><p class="muted">${esc(shop.address||'')}</p></div></div>${network.branches.length>1?`<section><h3>Филиалы сети</h3>${network.branches.map(b=>`<button class="list-card" data-store="${b.branch_id}"><span><b>${esc(b.branch_name||b.name)} · ${esc(b.branch_code)}</b><small>${esc(b.address)}</small></span></button>`).join('')}</section>`:''}<div class="hero-actions"><button class="button" data-product-chat="${shopId}">${icon('message-circle')} ${t('write')}</button><button class="button soft" data-store-route="${shopId}">${icon('route')} ${t('route')}</button></div><section class="section">${productGrid(products)}</section>`,shop.name||'',true);
+  openModal(`<div class="profile-hero"><img class="store-logo" src="${esc(imageUrl(shop.logo_url))}" alt=""><div><p class="eyebrow">Yaqintop market</p><h2>${esc(shop.name||'Магазин')}</h2><p class="muted">${esc(shop.address||'')}</p></div></div>${network.branches.length>1?`<section><h3>Филиалы сети</h3>${network.branches.map(b=>`<button class="list-card" data-store="${b.branch_id}"><span><b>${esc(b.branch_name||b.name)} · ${esc(b.branch_code)}</b><small>${esc(b.address)}</small></span></button>`).join('')}</section>`:''}<div class="hero-actions"><button class="button" data-product-chat="${shopId}">${icon('message-circle')} ${t('write')}</button><button class="button soft" data-store-route="${shopId}">${icon('route')} ${t('route')}</button></div><section class="section">${productGrid(products)}</section>`,shop.name||'',true);
 }
 
 async function renderMap(){
-  if(!state.shops.length)await loadShops(); $('#view').innerHTML=`${pageHead(t('map'),'YAQINTOP MARKET')}<div class="map-layout"><div class="map-panel"><div class="store-grid" style="grid-template-columns:1fr">${state.shops.map(storeCard).join('')}</div></div><div id="map" class="map-loading"><div>${icon('map-pin',48)}<b>Загружаем карту…</b></div></div></div>`;
+  if(!state.shops.length)await loadShops(); $('#view').innerHTML=`${pageHead(t('map'),'Yaqintop market')}<div class="map-layout"><div class="map-panel"><div class="store-grid" style="grid-template-columns:1fr">${state.shops.map(storeCard).join('')}</div></div><div id="map" class="map-loading"><div>${icon('map-pin',48)}<b>Загружаем карту…</b></div></div></div>`;
   if(!window.L){$('#map').innerHTML=`<div class="map-fallback">${icon('map-pin',48)}<h2>Карта временно недоступна</h2><p>Выберите магазин слева — мы откроем маршрут в Google Maps.</p></div>`;refreshIcons();return;}
   setTimeout(()=>{
     try {
@@ -323,7 +342,7 @@ function openRoute(shopId){ const s=state.shops.find(x=>Number(x.id)===shopId); 
 async function renderChats(){
   if(!requireAuth(()=>navigate('chats')))return; state.chats=await api('/chats');
   const threads=state.chats.length?state.chats.map(c=>`<button class="chat-thread" data-chat="${Number(c.chat_id||c.id)}"><span class="avatar">${esc((c.shop_name||'M')[0])}</span><span class="chat-thread-content"><b>${esc(c.shop_name||'Магазин')}</b><p>${esc(c.last_message||'Начните диалог')}</p></span><small>${esc(c.last_time||'')}</small></button>`).join(''):`<div class="chat-empty"><p>У вас ещё нет диалогов.</p><small>Откройте товар или выберите магазин, чтобы написать продавцу.</small><div class="chat-store-starts">${state.shops.slice(0,4).map(s=>`<button data-product-chat="${Number(s.id)}">${esc(s.name)}</button>`).join('')}</div></div>`;
-  $('#view').innerHTML=`${pageHead(t('chats'),'YAQINTOP MARKET')}<div class="chat-layout"><aside class="chat-list"><div class="chat-list-head"><b>${t('chats')}</b><span>${state.chats.length||''}</span></div>${threads}</aside><section id="chatRoom" class="chat-room hidden-mobile"><div class="empty">${icon('message-circle',52)}<h3>Выберите диалог</h3><p>Или начните новый чат из карточки товара.</p></div></section></div>`;
+  $('#view').innerHTML=`${pageHead(t('chats'),'Yaqintop market')}<div class="chat-layout"><aside class="chat-list"><div class="chat-list-head"><b>${t('chats')}</b><span>${state.chats.length||''}</span></div>${threads}</aside><section id="chatRoom" class="chat-room hidden-mobile"><div class="empty">${icon('message-circle',52)}<h3>Выберите диалог</h3><p>Или начните новый чат из карточки товара.</p></div></section></div>`;
 }
 
 async function openChat(chatId,shopName='Магазин'){
@@ -338,16 +357,16 @@ async function startChat(shopId){if(!requireAuth(()=>navigate('product',state.ac
 
 async function renderNotifications(){
   if(!requireAuth(()=>navigate('notifications')))return navigate('home');const data=await api('/users/me/notifications');$('#notificationDot').classList.add('hidden');await api('/users/me/notifications/read-all',{method:'PUT',body:'{}'});
-  $('#view').innerHTML=`${pageHead(t('notifications'),'YAQINTOP MARKET')}<div class="settings-list">${data.notifications?.length?data.notifications.map(n=>`<button class="list-card" data-store="${Number(n.shop_id)}"><span class="list-icon">${icon('bell')}</span><span><b>${esc(n.shop_name)}</b><small>${esc(n.text)}</small></span>${icon('chevron-right')}</button>`).join(''):emptyState('bell-off')}</div>`;
+  $('#view').innerHTML=`${pageHead(t('notifications'),'Yaqintop market')}<div class="settings-list">${data.notifications?.length?data.notifications.map(n=>`<button class="list-card" data-store="${Number(n.shop_id)}"><span class="list-icon">${icon('bell')}</span><span><b>${esc(n.shop_name)}</b><small>${esc(n.text)}</small></span>${icon('chevron-right')}</button>`).join(''):emptyState('bell-off')}</div>`;
 }
 async function checkNotifications(){try{const d=await api('/users/me/notifications?limit=1');$('#notificationDot').classList.toggle('hidden',!Number(d.unread_count));}catch{}}
 
 async function renderProfile(){
-  if(!state.token){$('#view').innerHTML=`${pageHead(t('profile'),'YAQINTOP MARKET')}<div class="empty"><div><img class="auth-logo" src="assets/yaqintop-logo.png" alt=""><h2>${t('hello')}</h2><button class="button" data-auth>${t('login')}</button></div></div>${appearanceSettings()}`;return;}
+  if(!state.token){$('#view').innerHTML=`${pageHead(t('profile'),'Yaqintop market')}<div class="empty"><div><img class="auth-logo" src="assets/yaqintop-logo.png" alt=""><h2>${t('hello')}</h2><button class="button" data-auth>${t('login')}</button></div></div>${appearanceSettings()}`;return;}
   let subs={loyalty_cards:[],warranties:[],offers:[],discounts:[]};try{subs=await api('/users/me/subscriptions');}catch{}
   const total=(subs.loyalty_cards?.length||0)+(subs.warranties?.length||0)+(subs.discounts?.length||0);
-  $('#view').innerHTML=`${pageHead(t('profile'),'YAQINTOP MARKET')}<div class="profile-hero"><div class="avatar">${state.user.avatar_url?`<img src="${esc(imageUrl(state.user.avatar_url))}" alt="">`:esc((state.user.name||'M')[0])}</div><div><h2>${esc(state.user.name)}</h2><p class="muted">${esc(state.user.phone||'')} · MM-ID #${state.user.id}</p></div></div><div class="stat-grid"><div class="stat"><small>${t('favorites')}</small><b>${state.favorites.size}</b></div><div class="stat"><small>${t('wallet')}</small><b>${total}</b></div><div class="stat"><small>${t('profile')}</small><b>Активен</b></div></div>
-  <div class="wallet"><div class="wallet-head"><h2>YAQINTOP MARKET Wallet</h2><span>Pay & Save</span></div><div class="wallet-grid"><div class="wallet-item"><b>Талоны</b><small>QR</small></div><div class="wallet-item"><b>Скидки</b><small>${subs.discounts?.length||0}</small></div><div class="wallet-item"><b>Гарантии</b><small>${subs.warranties?.length||0}</small></div></div><div class="hero-actions"><button class="button white" data-wallet-qr>${icon('qr-code')} Показать QR</button><button class="button" data-wallet>${t('wallet')}</button></div></div>
+  $('#view').innerHTML=`${pageHead(t('profile'),'Yaqintop market')}<div class="profile-hero"><div class="avatar">${state.user.avatar_url?`<img src="${esc(imageUrl(state.user.avatar_url))}" alt="">`:esc((state.user.name||'M')[0])}</div><div><h2>${esc(state.user.name)}</h2><p class="muted">${esc(state.user.phone||'')} · MM-ID #${state.user.id}</p></div></div><div class="stat-grid"><div class="stat"><small>${t('favorites')}</small><b>${state.favorites.size}</b></div><div class="stat"><small>${t('wallet')}</small><b>${total}</b></div><div class="stat"><small>${t('profile')}</small><b>Активен</b></div></div>
+  <div class="wallet"><div class="wallet-head"><h2>Yaqintop market Wallet</h2><span>Pay & Save</span></div><div class="wallet-grid"><div class="wallet-item"><b>Талоны</b><small>QR</small></div><div class="wallet-item"><b>Скидки</b><small>${subs.discounts?.length||0}</small></div><div class="wallet-item"><b>Гарантии</b><small>${subs.warranties?.length||0}</small></div></div><div class="hero-actions"><button class="button white" data-wallet-qr>${icon('qr-code')} Показать QR</button><button class="button" data-wallet>${t('wallet')}</button></div></div>
   ${appearanceSettings()}<section class="section"><div class="settings-list"><button class="list-card" data-account><span class="list-icon">${icon('user')}</span><span><b>${t('account')}</b><small>Имя, телефон и фото</small></span>${icon('chevron-right')}</button><button class="list-card" data-wallet><span class="list-icon">${icon('wallet-cards')}</span><span><b>${t('wallet')}</b><small>Талоны, скидки и гарантии</small></span>${icon('chevron-right')}</button><button class="list-card" data-saved-card><span class="list-icon">${icon('credit-card')}</span><span><b>Сохранённая карта</b><small>Карта для оплаты услуг</small></span>${icon('chevron-right')}</button><button class="list-card" data-interests><span class="list-icon">${icon('sparkles')}</span><span><b>Мои интересы</b><small>Три любимые категории</small></span>${icon('chevron-right')}</button><button class="list-card" data-action="language"><span class="list-icon">${icon('languages')}</span><span><b>${t('language')}</b><small>Русский, English, O‘zbekcha</small></span>${icon('chevron-right')}</button><button class="list-card" data-help><span class="list-icon">${icon('headphones')}</span><span><b>${t('help')}</b><small>Поиск, карта, каталог и безопасность</small></span>${icon('chevron-right')}</button><button class="list-card" data-logout><span class="list-icon">${icon('log-out')}</span><span><b>${t('logout')}</b></span></button></div></section>`;
 }
 
@@ -396,11 +415,11 @@ function bindGlobalEvents(){
     const offer=event.target.closest('[data-branch-offer]');if(offer){const p=state.activeProduct,o=p?.offers?.find(x=>Number(x.product_id)===Number(offer.dataset.branchOffer));if(o){state.activeProduct={...p,id:o.product_id,price:o.price,old_price:o.old_price,in_stock:o.in_stock,stock_quantity:o.stock_quantity,shop_id:o.shop_id,shop_name:o.shop_name,branch_name:o.branch_name,business_name:o.business_name,shop_address:o.address,shop_phone:o.phone,shop_working_hours:o.working_hours,shop_latitude:o.latitude,shop_longitude:o.longitude};const known=state.shops.find(s=>Number(s.id)===Number(o.shop_id));if(!known)state.shops.push({id:o.shop_id,name:o.shop_name,address:o.address,latitude:o.latitude,longitude:o.longitude});renderProductDetailsBody();refreshIcons();}return;}
     const route=event.target.closest('[data-route]');if(route){navigate(route.dataset.route);return;}
     const close=event.target.closest('[data-close-modal]');if(close||event.target.classList.contains('modal-backdrop')){closeModal();return;}
+    const routeStore=event.target.closest('[data-store-route]');if(routeStore){openRoute(Number(routeStore.dataset.storeRoute));return;}
     const product=event.target.closest('[data-product]');if(product&&!event.target.closest('[data-favorite]')){navigate('product',Number(product.dataset.product));return;}
     const fav=event.target.closest('[data-favorite]');if(fav){event.stopPropagation();toggleFavorite(Number(fav.dataset.favorite),fav).catch(error=>toast(error.message,true));return;}
     const cat=event.target.closest('[data-category]');if(cat){navigate('catalog',cat.dataset.category);return;}
     const store=event.target.closest('[data-store]');if(store){showStore(Number(store.dataset.store)).catch(error=>toast(error.message,true));return;}
-    const routeStore=event.target.closest('[data-store-route]');if(routeStore){openRoute(Number(routeStore.dataset.storeRoute));return;}
     const chatStart=event.target.closest('[data-product-chat]');if(chatStart){startChat(Number(chatStart.dataset.productChat)).catch(error=>toast(error.message,true));return;}
     const thread=event.target.closest('[data-chat]');if(thread){const row=state.chats.find(c=>Number(c.chat_id||c.id)===Number(thread.dataset.chat));openChat(Number(thread.dataset.chat),row?.shop_name).catch(error=>toast(error.message,true));return;}
     if(event.target.closest('[data-chat-photo]')){$('#filePicker').click();return;}
@@ -447,4 +466,6 @@ function bindGlobalEvents(){
 function updateSendButton(){const btn=$('#chatSend');if(!btn)return;btn.classList.toggle('hidden-send',!$('#chatInput').value.trim()&&!state.pendingFile);}
 function debounce(fn,delay){let id;return(...args)=>{clearTimeout(id);id=setTimeout(()=>fn(...args),delay);};}
 
-bootstrap().catch(error=>{console.error(error);toast(error.message,true);});
+window.YAQINTOP_BUYER_STARTED=true;
+window.dispatchEvent(new Event('yaqintop:started'));
+bootstrap().catch(error=>{console.error(error);$('#view').innerHTML=errorState(error);refreshIcons();});
