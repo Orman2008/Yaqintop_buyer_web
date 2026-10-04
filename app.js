@@ -1,4 +1,5 @@
 import {appearanceSettings} from './shared/appearance.js';
+import {mediaUrl,installPrivateMediaImages,withoutMediaCapabilities,clearPrivateMediaImages} from './shared/api.js';
 import {createBuyerAuth} from './buyer-auth.js?v=20261003-1';
 function resolveApiBaseUrl(configuredUrl, location) {
   const configured=String(configuredUrl||'').trim().replace(/\/+$/,'');
@@ -34,9 +35,10 @@ const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const t = (key) => dictionary[state.language]?.[key] || dictionary.ru[key] || key;
 const esc = (value='') => String(value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const money = (value) => `${new Intl.NumberFormat(state.language === 'en' ? 'en-US' : 'ru-RU').format(Number(value || 0))} сум`;
-const imageUrl = (raw) => { const value=String(raw||'').trim(); return value ? (value.startsWith('http') ? value : `${API_BASE}${value.startsWith('/')?'':'/'}${value}`) : 'assets/product-placeholder.svg'; };
+const imageUrl = (raw) => mediaUrl(raw,API_BASE) || 'assets/product-placeholder.svg';
 const authHeaders = () => state.token ? {Authorization:`Bearer ${state.token}`} : {};
 
+installPrivateMediaImages({request: api, baseUrl: API_BASE});
 async function api(path, options={}) {
   if(!API_BASE)throw new Error('Адрес сервера не настроен. Обновите страницу или обратитесь в поддержку.');
   const {auth=true, ...requestOptions}=options;
@@ -173,8 +175,8 @@ async function loadProducts(params={}, {append=false}={}) {
 async function loadShops() { state.shops=await api('/shops');state.shopsLoaded=true;return state.shops; }
 async function loadCategories() { state.categories=await api('/products/categories');state.categoriesLoaded=true;return state.categories; }
 async function loadFavorites() { if(!state.token)return; const rows=await api(`/users/me/favorites?lang=${state.language}`); state.favorites=new Set(rows.map(x=>Number(x.id||x.product_id))); }
-function persistSession(){ localStorage.setItem('mm_web_token',state.token); localStorage.setItem('mm_web_user',JSON.stringify(state.user)); localStorage.setItem('mm_web_language',state.language); }
-function logout(render=true){ state.token='';state.user=null;state.favorites.clear();localStorage.removeItem('mm_web_token');localStorage.removeItem('mm_web_user');if(render)navigate('home');renderNavigation(); }
+function persistSession(){ localStorage.setItem('mm_web_token',state.token); localStorage.setItem('mm_web_user',JSON.stringify(withoutMediaCapabilities(state.user))); localStorage.setItem('mm_web_language',state.language); }
+function logout(render=true){ state.token='';state.user=null;state.favorites.clear();clearPrivateMediaImages();localStorage.removeItem('mm_web_token');localStorage.removeItem('mm_web_user');if(render)navigate('home');renderNavigation(); }
 
 function emptyState(ico='package-open', text=t('empty')) { return `<div class="empty"><div>${icon(ico,52)}<h3>${esc(text)}</h3></div></div>`; }
 function errorState(error) { return `<div class="empty"><div>${icon('triangle-alert',52)}<h3>${esc(error?.message||'Не удалось загрузить данные.')}</h3><button class="button" data-retry-route>${t('retry')}</button></div></div>`; }
@@ -273,7 +275,7 @@ async function renderProductDetails(id){
   const p=state.activeProduct||cached;
   if(!p)return;
   state.recent=[p,...state.recent.filter(x=>Number(x.id)!==Number(id))].slice(0,20);
-  localStorage.setItem('mm_web_recent',JSON.stringify(state.recent));
+  localStorage.setItem('mm_web_recent',JSON.stringify(withoutMediaCapabilities(state.recent)));
   if(!cached)renderProductDetailsBody();
 }
 function renderProductDetailsBody(){
