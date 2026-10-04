@@ -65,7 +65,7 @@ export async function mountChats(
       refreshing = false;
     }
   }
-  container.innerHTML = `<div class="chat-layout"><aside class="chat-threads">${threads.map((chat) => `<button class="card" data-thread="${Number(chat.chat_id || chat.id)}"><b>${esc((role === "seller" ? chat.buyer_name || chat.customer_name : chat.shop_name) || "Диалог")}</b><p class="muted">${esc(chat.last_message)}</p>${chat.branch_code?`<small>${esc(chat.branch_name)} · ${esc(chat.branch_code)}</small>`:""}</button>`).join("") || empty("Диалогов пока нет")}</aside><section id="chatRoom" class="card">${empty("Выберите диалог")}</section></div>`;
+  container.innerHTML = `<div class="chat-layout"><aside class="chat-threads">${threads.map((chat) => `<button class="card" data-thread="${Number(chat.chat_id || chat.id)}"><b>${esc((role === "seller" ? chat.buyer_name || chat.customer_name : chat.shop_name) || "Диалог")}</b><p class="muted">${esc(chat.last_message)}</p>${chat.branch_name || (role === "seller" && chat.branch_code)?`<small>${esc(chat.branch_name)}${role === "seller" && chat.branch_code?` · ${esc(chat.branch_code)}`:""}</small>`:""}</button>`).join("") || empty("Диалогов пока нет")}</aside><section id="chatRoom" class="card">${empty("Выберите диалог")}</section></div>`;
   async function open(id) {
     active = id;
     const version = ++generation;
