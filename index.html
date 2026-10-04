@@ -3,24 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script src="shared/appearance-init.js"></script>
+    <link rel="stylesheet" href="shared/appearance.css" />
     <meta name="theme-color" content="#f6f8fc" />
-    <meta name="description" content="MapMarket — товары и магазины рядом" />
-    <title>MapMarket</title>
-    <link rel="icon" type="image/png" href="assets/mapmarket-logo.png" />
+    <meta name="description" content="YAQINTOP MARKET — товары и магазины рядом" />
+    <title>YAQINTOP MARKET</title>
+    <link rel="icon" type="image/png" href="assets/yaqintop-logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
     <link rel="stylesheet" href="styles.css?v=20261003-1" />
-    <meta property="og:title" content="MapMarket — товары и магазины рядом" />
+    <meta property="og:title" content="YAQINTOP MARKET — товары и магазины рядом" />
     <meta property="og:description" content="Найдите товар, сравните предложения магазинов и постройте маршрут." />
+      <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="assets/yaqintop-icon-192.png" />
+      <link rel="stylesheet" href="shared/responsive.css" />
   </head>
   <body>
     <div id="app" class="app-shell">
       <aside class="desktop-sidebar">
-        <button class="brand" data-route="home" aria-label="MapMarket">
-          <img src="assets/mapmarket-logo.png" alt="" />
-          <span><b>MAPMARKET</b><small>Покупателям</small></span>
+        <button class="brand" data-route="home" aria-label="YAQINTOP MARKET">
+          <img src="assets/yaqintop-logo.png" alt="" />
+          <span><b>YAQINTOP MARKET</b><small>Покупателям</small></span>
         </button>
         <nav id="desktopNav" class="desktop-nav"></nav>
         <div class="sidebar-bottom">
@@ -31,7 +36,7 @@
 
       <main class="main-column">
         <header class="topbar">
-          <button class="mobile-brand brand" data-route="home"><img src="assets/mapmarket-logo.png" alt="" /><b>MAPMARKET</b></button>
+          <button class="mobile-brand brand" data-route="home"><img src="assets/yaqintop-logo.png" alt="" /><b>YAQINTOP MARKET</b></button>
           <div class="global-search">
             <i data-lucide="search"></i>
             <input id="globalSearch" autocomplete="off" data-i18n-placeholder="searchPlaceholder" placeholder="Поиск товаров и категорий" />

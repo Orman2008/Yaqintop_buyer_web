@@ -1,3 +1,4 @@
+import {appearanceSettings} from './shared/appearance.js';
 import {createBuyerAuth} from './buyer-auth.js?v=20261003-1';
 function resolveApiBaseUrl(configuredUrl, location) {
   const configured=String(configuredUrl||'').trim().replace(/\/+$/,'');
@@ -25,6 +26,7 @@ const state = {
   catalogQuery: {}, catalogOffset: 0, catalogHasMore: false, catalogLoading: false, catalogRequestId: 0,
   chats: [], activeChat: null, pendingFile: null, map: null, markers: [], loading: false,
   activeProduct: null, productImageIndex: 0,
+  searchSuggestionId: 0,
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -46,7 +48,7 @@ async function api(path, options={}) {
     response = await fetch(`${API_BASE}${path}`, {...requestOptions, headers, signal:controller.signal});
   } catch (error) {
     if(controller.signal.aborted)throw new Error('Сервер отвечает слишком долго. Проверьте интернет и повторите попытку.');
-    throw new Error('Не удалось подключиться к серверу MapMarket. Проверьте интернет и откройте сайт по официальной ссылке.');
+    throw new Error('Не удалось подключиться к серверу YAQINTOP MARKET. Проверьте интернет и откройте сайт по официальной ссылке.');
   } finally {
     clearTimeout(timeout);
   }
@@ -77,6 +79,7 @@ function renderNavigation() {
 }
 
 async function navigate(route, data=null) {
+  state.searchSuggestionId++; $('#searchSuggestions').classList.add('hidden');
   state.route=route; state.routeData=data; renderNavigation(); window.scrollTo({top:0,behavior:'smooth'}); setLoading();
   try {
     if(route==='home') await renderHome();
@@ -194,7 +197,7 @@ async function renderHome(){
   if(!state.catalogLoaded) await loadProducts(); if(!state.shopsLoaded)await loadShops();
   let recommended=[]; if(state.token){try{recommended=await api(`/products/recommendations?lang=${state.language}`);}catch{}}
   const items=recommended.length?recommended:state.products.slice(0,8);
-  $('#view').innerHTML=`<section class="hero"><div><p class="eyebrow" style="color:#bcd3ff">MAPMARKET</p><h1>${t('hero')}</h1><p>${t('heroText')}</p><div class="hero-actions"><button class="button white" data-route="catalog">${icon('layout-grid')} ${t('explore')}</button><button class="button" data-route="map">${icon('map')} ${t('openMap')}</button></div></div><div class="hero-art"><img src="assets/mapmarket-logo.png" alt=""></div></section>
+  $('#view').innerHTML=`<section class="hero"><div><p class="eyebrow" style="color:#bcd3ff">YAQINTOP MARKET</p><h1>${t('hero')}</h1><p>${t('heroText')}</p><div class="hero-actions"><button class="button white" data-route="catalog">${icon('layout-grid')} ${t('explore')}</button><button class="button" data-route="map">${icon('map')} ${t('openMap')}</button></div></div><div class="hero-art"><img src="assets/yaqintop-logo.png" alt=""></div></section>
   <section class="section"><div class="section-head"><h2>${t('categories')}</h2></div><div class="chips"><button class="chip active" data-category="">${t('all')}</button>${state.categories.map(c=>`<button class="chip" data-category="${esc(c)}">${esc(c)}</button>`).join('')}</div></section>
   <section class="section"><div class="section-head"><h2>${t('recommendations')}</h2><button class="button soft" data-route="catalog">${t('all')} ${icon('arrow-right')}</button></div>${productGrid(items)}</section>
   <section class="section"><div class="section-head"><h2>${t('nearby')}</h2><button class="button soft" data-route="map">${t('map')}</button></div><div class="store-grid">${state.shops.slice(0,6).map(storeCard).join('')}</div></section>`;
@@ -212,7 +215,7 @@ async function renderSearch(query){
 }
 
 function catalogPageMarkup(category,items) {
-  return `${pageHead(t('catalog'),'MAPMARKET')}<div class="chips"><button class="chip ${!category?'active':''}" data-category="">${t('all')}</button>${state.categories.map(c=>`<button class="chip ${category===c?'active':''}" data-category="${esc(c)}">${esc(c)}</button>`).join('')}</div>${productGrid(items)}${loadMoreMarkup()}`;
+  return `${pageHead(t('catalog'),'YAQINTOP MARKET')}<div class="chips"><button class="chip ${!category?'active':''}" data-category="">${t('all')}</button>${state.categories.map(c=>`<button class="chip ${category===c?'active':''}" data-category="${esc(c)}">${esc(c)}</button>`).join('')}</div>${productGrid(items)}${loadMoreMarkup()}`;
 }
 
 function searchPageMarkup(query,items) {
@@ -240,7 +243,7 @@ async function renderFavorites(){
   if(!requireAuth(()=>navigate('favorites')))return navigate('home'); await loadFavorites();
   const items=await api(`/users/me/favorites?lang=${state.language}`);
   for(const product of items)cacheProduct(product);
-  $('#view').innerHTML=`${pageHead(t('favorites'),'MAPMARKET')}${productGrid(items)}`;
+  $('#view').innerHTML=`${pageHead(t('favorites'),'YAQINTOP MARKET')}${productGrid(items)}`;
 }
 
 async function toggleFavorite(id,button){
@@ -280,7 +283,7 @@ function renderProductDetailsBody(){
   const specs=[['Бренд',p.brand],['Модель',p.model],['Цвет',p.color],['Размер',p.size],['Наличие',p.in_stock===false?'Нет в наличии':'В наличии']].filter(([,v])=>v);
   $('#view').innerHTML=`<button class="back-link" data-back-catalog>${icon('arrow-left')} Назад к товарам</button>
     <section class="product-detail-page"><div class="product-gallery"><img class="detail-image" src="${esc(imageUrl(active))}" alt="${esc(p.title)}">${images.length>1?`<div class="gallery-thumbs">${images.map((src,index)=>`<button class="gallery-thumb ${index===state.productImageIndex?'active':''}" data-product-image="${index}"><img src="${esc(imageUrl(src))}" alt=""></button>`).join('')}</div>`:''}</div>
-    <div class="detail-info"><p class="eyebrow">${esc(p.category||'MAPMARKET')}</p><h1>${esc(p.title||'Товар')}</h1><p class="muted">${esc(p.shop_name||'Магазин')}</p><div class="rating">${icon('star')} <b>${Number(p.product_average_rating||p.average_rating||0).toFixed(1)}</b><span>(${Number(p.product_reviews_count||p.reviews_count||0)} отзывов)</span></div><div class="price-row detail-price"><span class="price">${money(p.price)}</span>${p.old_price&&Number(p.old_price)>Number(p.price)?`<span class="old-price">${money(p.old_price)}</span>`:''}</div><div class="hero-actions"><button class="button" data-product-chat="${Number(p.shop_id)}">${icon('message-circle')} ${t('write')}</button><button class="button soft" data-store-route="${Number(p.shop_id)}">${icon('route')} ${t('route')}</button><button class="button ghost" data-product-reviews="${Number(p.id)}">${icon('star')} ${t('reviews')}</button></div>${buyerBranchOffers(p)}<section class="detail-section"><h2>Описание</h2><p class="detail-description">${esc(p.description||'Описание пока не добавлено.')}</p></section>${specs.length?`<section class="detail-section"><h2>Характеристики</h2><div class="spec-list">${specs.map(([label,value])=>`<div><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}</div></section>`:''}</div></section>`;
+    <div class="detail-info"><p class="eyebrow">${esc(p.category||'YAQINTOP MARKET')}</p><h1>${esc(p.title||'Товар')}</h1><p class="muted">${esc(p.shop_name||'Магазин')}</p><div class="rating">${icon('star')} <b>${Number(p.product_average_rating||p.average_rating||0).toFixed(1)}</b><span>(${Number(p.product_reviews_count||p.reviews_count||0)} отзывов)</span></div><div class="price-row detail-price"><span class="price">${money(p.price)}</span>${p.old_price&&Number(p.old_price)>Number(p.price)?`<span class="old-price">${money(p.old_price)}</span>`:''}</div><div class="hero-actions"><button class="button" data-product-chat="${Number(p.shop_id)}">${icon('message-circle')} ${t('write')}</button><button class="button soft" data-store-route="${Number(p.shop_id)}">${icon('route')} ${t('route')}</button><button class="button ghost" data-product-reviews="${Number(p.id)}">${icon('star')} ${t('reviews')}</button></div>${buyerBranchOffers(p)}<section class="detail-section"><h2>Описание</h2><p class="detail-description">${esc(p.description||'Описание пока не добавлено.')}</p></section>${specs.length?`<section class="detail-section"><h2>Характеристики</h2><div class="spec-list">${specs.map(([label,value])=>`<div><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}</div></section>`:''}</div></section>`;
 }
 
 function buyerBranchOffers(p){
@@ -289,11 +292,11 @@ function buyerBranchOffers(p){
 }
 async function showStore(shopId){
   const shop=state.shops.find(s=>Number(s.id)===shopId)||{}; const products=await api(`/products?shop_id=${shopId}&lang=${state.language}`);const network=await api(`/shops/${shopId}/locations`);
-  openModal(`<div class="profile-hero"><img class="store-logo" src="${esc(imageUrl(shop.logo_url))}" alt=""><div><p class="eyebrow">MAPMARKET</p><h2>${esc(shop.name||'Магазин')}</h2><p class="muted">${esc(shop.address||'')}</p></div></div>${network.branches.length>1?`<section><h3>Филиалы сети</h3>${network.branches.map(b=>`<button class="list-card" data-store="${b.branch_id}"><span><b>${esc(b.branch_name||b.name)} · ${esc(b.branch_code)}</b><small>${esc(b.address)}</small></span></button>`).join('')}</section>`:''}<div class="hero-actions"><button class="button" data-product-chat="${shopId}">${icon('message-circle')} ${t('write')}</button><button class="button soft" data-store-route="${shopId}">${icon('route')} ${t('route')}</button></div><section class="section">${productGrid(products)}</section>`,shop.name||'',true);
+  openModal(`<div class="profile-hero"><img class="store-logo" src="${esc(imageUrl(shop.logo_url))}" alt=""><div><p class="eyebrow">YAQINTOP MARKET</p><h2>${esc(shop.name||'Магазин')}</h2><p class="muted">${esc(shop.address||'')}</p></div></div>${network.branches.length>1?`<section><h3>Филиалы сети</h3>${network.branches.map(b=>`<button class="list-card" data-store="${b.branch_id}"><span><b>${esc(b.branch_name||b.name)} · ${esc(b.branch_code)}</b><small>${esc(b.address)}</small></span></button>`).join('')}</section>`:''}<div class="hero-actions"><button class="button" data-product-chat="${shopId}">${icon('message-circle')} ${t('write')}</button><button class="button soft" data-store-route="${shopId}">${icon('route')} ${t('route')}</button></div><section class="section">${productGrid(products)}</section>`,shop.name||'',true);
 }
 
 async function renderMap(){
-  if(!state.shops.length)await loadShops(); $('#view').innerHTML=`${pageHead(t('map'),'MAPMARKET')}<div class="map-layout"><div class="map-panel"><div class="store-grid" style="grid-template-columns:1fr">${state.shops.map(storeCard).join('')}</div></div><div id="map" class="map-loading"><div>${icon('map-pin',48)}<b>Загружаем карту…</b></div></div></div>`;
+  if(!state.shops.length)await loadShops(); $('#view').innerHTML=`${pageHead(t('map'),'YAQINTOP MARKET')}<div class="map-layout"><div class="map-panel"><div class="store-grid" style="grid-template-columns:1fr">${state.shops.map(storeCard).join('')}</div></div><div id="map" class="map-loading"><div>${icon('map-pin',48)}<b>Загружаем карту…</b></div></div></div>`;
   if(!window.L){$('#map').innerHTML=`<div class="map-fallback">${icon('map-pin',48)}<h2>Карта временно недоступна</h2><p>Выберите магазин слева — мы откроем маршрут в Google Maps.</p></div>`;refreshIcons();return;}
   setTimeout(()=>{
     try {
@@ -318,7 +321,7 @@ function openRoute(shopId){ const s=state.shops.find(x=>Number(x.id)===shopId); 
 async function renderChats(){
   if(!requireAuth(()=>navigate('chats')))return; state.chats=await api('/chats');
   const threads=state.chats.length?state.chats.map(c=>`<button class="chat-thread" data-chat="${Number(c.chat_id||c.id)}"><span class="avatar">${esc((c.shop_name||'M')[0])}</span><span class="chat-thread-content"><b>${esc(c.shop_name||'Магазин')}</b><p>${esc(c.last_message||'Начните диалог')}</p></span><small>${esc(c.last_time||'')}</small></button>`).join(''):`<div class="chat-empty"><p>У вас ещё нет диалогов.</p><small>Откройте товар или выберите магазин, чтобы написать продавцу.</small><div class="chat-store-starts">${state.shops.slice(0,4).map(s=>`<button data-product-chat="${Number(s.id)}">${esc(s.name)}</button>`).join('')}</div></div>`;
-  $('#view').innerHTML=`${pageHead(t('chats'),'MAPMARKET')}<div class="chat-layout"><aside class="chat-list"><div class="chat-list-head"><b>${t('chats')}</b><span>${state.chats.length||''}</span></div>${threads}</aside><section id="chatRoom" class="chat-room hidden-mobile"><div class="empty">${icon('message-circle',52)}<h3>Выберите диалог</h3><p>Или начните новый чат из карточки товара.</p></div></section></div>`;
+  $('#view').innerHTML=`${pageHead(t('chats'),'YAQINTOP MARKET')}<div class="chat-layout"><aside class="chat-list"><div class="chat-list-head"><b>${t('chats')}</b><span>${state.chats.length||''}</span></div>${threads}</aside><section id="chatRoom" class="chat-room hidden-mobile"><div class="empty">${icon('message-circle',52)}<h3>Выберите диалог</h3><p>Или начните новый чат из карточки товара.</p></div></section></div>`;
 }
 
 async function openChat(chatId,shopName='Магазин'){
@@ -333,17 +336,17 @@ async function startChat(shopId){if(!requireAuth(()=>navigate('product',state.ac
 
 async function renderNotifications(){
   if(!requireAuth(()=>navigate('notifications')))return navigate('home');const data=await api('/users/me/notifications');$('#notificationDot').classList.add('hidden');await api('/users/me/notifications/read-all',{method:'PUT',body:'{}'});
-  $('#view').innerHTML=`${pageHead(t('notifications'),'MAPMARKET')}<div class="settings-list">${data.notifications?.length?data.notifications.map(n=>`<button class="list-card" data-store="${Number(n.shop_id)}"><span class="list-icon">${icon('bell')}</span><span><b>${esc(n.shop_name)}</b><small>${esc(n.text)}</small></span>${icon('chevron-right')}</button>`).join(''):emptyState('bell-off')}</div>`;
+  $('#view').innerHTML=`${pageHead(t('notifications'),'YAQINTOP MARKET')}<div class="settings-list">${data.notifications?.length?data.notifications.map(n=>`<button class="list-card" data-store="${Number(n.shop_id)}"><span class="list-icon">${icon('bell')}</span><span><b>${esc(n.shop_name)}</b><small>${esc(n.text)}</small></span>${icon('chevron-right')}</button>`).join(''):emptyState('bell-off')}</div>`;
 }
 async function checkNotifications(){try{const d=await api('/users/me/notifications?limit=1');$('#notificationDot').classList.toggle('hidden',!Number(d.unread_count));}catch{}}
 
 async function renderProfile(){
-  if(!state.token){$('#view').innerHTML=`${pageHead(t('profile'),'MAPMARKET')}<div class="empty"><div><img class="auth-logo" src="assets/mapmarket-logo.png" alt=""><h2>${t('hello')}</h2><button class="button" data-auth>${t('login')}</button></div></div>`;return;}
+  if(!state.token){$('#view').innerHTML=`${pageHead(t('profile'),'YAQINTOP MARKET')}<div class="empty"><div><img class="auth-logo" src="assets/yaqintop-logo.png" alt=""><h2>${t('hello')}</h2><button class="button" data-auth>${t('login')}</button></div></div>${appearanceSettings()}`;return;}
   let subs={loyalty_cards:[],warranties:[],offers:[],discounts:[]};try{subs=await api('/users/me/subscriptions');}catch{}
   const total=(subs.loyalty_cards?.length||0)+(subs.warranties?.length||0)+(subs.discounts?.length||0);
-  $('#view').innerHTML=`${pageHead(t('profile'),'MAPMARKET')}<div class="profile-hero"><div class="avatar">${state.user.avatar_url?`<img src="${esc(imageUrl(state.user.avatar_url))}" alt="">`:esc((state.user.name||'M')[0])}</div><div><h2>${esc(state.user.name)}</h2><p class="muted">${esc(state.user.phone||'')} · MM-ID #${state.user.id}</p></div></div><div class="stat-grid"><div class="stat"><small>${t('favorites')}</small><b>${state.favorites.size}</b></div><div class="stat"><small>${t('wallet')}</small><b>${total}</b></div><div class="stat"><small>${t('profile')}</small><b>Активен</b></div></div>
-  <div class="wallet"><div class="wallet-head"><h2>MapMarket Wallet</h2><span>Pay & Save</span></div><div class="wallet-grid"><div class="wallet-item"><b>Талоны</b><small>QR</small></div><div class="wallet-item"><b>Скидки</b><small>${subs.discounts?.length||0}</small></div><div class="wallet-item"><b>Гарантии</b><small>${subs.warranties?.length||0}</small></div></div><div class="hero-actions"><button class="button white" data-wallet-qr>${icon('qr-code')} Показать QR</button><button class="button" data-wallet>${t('wallet')}</button></div></div>
-  <section class="section"><div class="settings-list"><button class="list-card" data-account><span class="list-icon">${icon('user')}</span><span><b>${t('account')}</b><small>Имя, телефон и фото</small></span>${icon('chevron-right')}</button><button class="list-card" data-wallet><span class="list-icon">${icon('wallet-cards')}</span><span><b>${t('wallet')}</b><small>Талоны, скидки и гарантии</small></span>${icon('chevron-right')}</button><button class="list-card" data-saved-card><span class="list-icon">${icon('credit-card')}</span><span><b>Сохранённая карта</b><small>Карта для оплаты услуг</small></span>${icon('chevron-right')}</button><button class="list-card" data-interests><span class="list-icon">${icon('sparkles')}</span><span><b>Мои интересы</b><small>Три любимые категории</small></span>${icon('chevron-right')}</button><button class="list-card" data-action="language"><span class="list-icon">${icon('languages')}</span><span><b>${t('language')}</b><small>Русский, English, O‘zbekcha</small></span>${icon('chevron-right')}</button><button class="list-card" data-help><span class="list-icon">${icon('headphones')}</span><span><b>${t('help')}</b><small>Поиск, карта, каталог и безопасность</small></span>${icon('chevron-right')}</button><button class="list-card" data-logout><span class="list-icon">${icon('log-out')}</span><span><b>${t('logout')}</b></span></button></div></section>`;
+  $('#view').innerHTML=`${pageHead(t('profile'),'YAQINTOP MARKET')}<div class="profile-hero"><div class="avatar">${state.user.avatar_url?`<img src="${esc(imageUrl(state.user.avatar_url))}" alt="">`:esc((state.user.name||'M')[0])}</div><div><h2>${esc(state.user.name)}</h2><p class="muted">${esc(state.user.phone||'')} · MM-ID #${state.user.id}</p></div></div><div class="stat-grid"><div class="stat"><small>${t('favorites')}</small><b>${state.favorites.size}</b></div><div class="stat"><small>${t('wallet')}</small><b>${total}</b></div><div class="stat"><small>${t('profile')}</small><b>Активен</b></div></div>
+  <div class="wallet"><div class="wallet-head"><h2>YAQINTOP MARKET Wallet</h2><span>Pay & Save</span></div><div class="wallet-grid"><div class="wallet-item"><b>Талоны</b><small>QR</small></div><div class="wallet-item"><b>Скидки</b><small>${subs.discounts?.length||0}</small></div><div class="wallet-item"><b>Гарантии</b><small>${subs.warranties?.length||0}</small></div></div><div class="hero-actions"><button class="button white" data-wallet-qr>${icon('qr-code')} Показать QR</button><button class="button" data-wallet>${t('wallet')}</button></div></div>
+  ${appearanceSettings()}<section class="section"><div class="settings-list"><button class="list-card" data-account><span class="list-icon">${icon('user')}</span><span><b>${t('account')}</b><small>Имя, телефон и фото</small></span>${icon('chevron-right')}</button><button class="list-card" data-wallet><span class="list-icon">${icon('wallet-cards')}</span><span><b>${t('wallet')}</b><small>Талоны, скидки и гарантии</small></span>${icon('chevron-right')}</button><button class="list-card" data-saved-card><span class="list-icon">${icon('credit-card')}</span><span><b>Сохранённая карта</b><small>Карта для оплаты услуг</small></span>${icon('chevron-right')}</button><button class="list-card" data-interests><span class="list-icon">${icon('sparkles')}</span><span><b>Мои интересы</b><small>Три любимые категории</small></span>${icon('chevron-right')}</button><button class="list-card" data-action="language"><span class="list-icon">${icon('languages')}</span><span><b>${t('language')}</b><small>Русский, English, O‘zbekcha</small></span>${icon('chevron-right')}</button><button class="list-card" data-help><span class="list-icon">${icon('headphones')}</span><span><b>${t('help')}</b><small>Поиск, карта, каталог и безопасность</small></span>${icon('chevron-right')}</button><button class="list-card" data-logout><span class="list-icon">${icon('log-out')}</span><span><b>${t('logout')}</b></span></button></div></section>`;
 }
 
 async function showWallet(){let d=await api('/users/me/subscriptions');const section=(title,items)=>`<section class="section"><h2>${title}</h2>${items.length?`<div class="settings-list">${items.map(x=>`<div class="list-card"><span class="list-icon">${icon('ticket-check')}</span><span><b>${esc(x.title||x.product_name||x.shop_name||title)}</b><small>${esc(x.description||x.status||'')}</small></span></div>`).join('')}</div>`:emptyState()}</section>`;openModal(`${section('Талоны',d.loyalty_cards||[])}${section('Скидки',d.discounts||[])}${section('Гарантии',d.warranties||[])}${section('Предложения',d.offers||[])}`,t('wallet'),true);}
@@ -361,8 +364,25 @@ const buyerAuth=createBuyerAuth({api,apiBase:API_BASE,language:()=>state.languag
 });
 function showAuth(after){buyerAuth.open(after);}
 
-function openModal(content,title='',wide=false){buyerAuth.cancel();$('#modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal ${wide?'wide':''}"><div class="modal-head"><h2>${esc(title)}</h2><button class="icon-button" data-close-modal>${icon('x')}</button></div><div class="modal-body">${content}</div></div></div>`;refreshIcons();}
-function closeModal(){ buyerAuth.cancel();$('#modalRoot').innerHTML=''; }
+let modalReturnFocus;
+function openModal(content,title='',wide=false){
+  buyerAuth.cancel();
+  if(!$('#modalRoot').firstElementChild)modalReturnFocus=document.activeElement;
+  $('#modalRoot').innerHTML=`<div class="modal-backdrop"><div role="dialog" aria-modal="true" aria-labelledby="buyerModalTitle" tabindex="-1" class="modal ${wide?'wide':''}"><div class="modal-head"><h2 id="buyerModalTitle">${esc(title)}</h2><button class="icon-button" aria-label="${esc(({ru:'Закрыть',en:'Close',uz:'Yopish'})[state.language]||'Close')}" data-close-modal>${icon('x')}</button></div><div class="modal-body">${content}</div></div></div>`;
+  refreshIcons();
+  const dialog=$('#modalRoot [role="dialog"]');
+  const focusable=()=>Array.from(dialog.querySelectorAll('button,input,select,textarea,a[href],[tabindex]')).filter(el=>!el.disabled&&el.tabIndex>=0&&el.getClientRects().length);
+  dialog.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){event.preventDefault();closeModal();return;}
+    if(event.key!=='Tab')return;
+    const items=focusable(),first=items[0],last=items.at(-1);
+    if(!first){event.preventDefault();dialog.focus();return;}
+    if(event.shiftKey&&(document.activeElement===first||document.activeElement===dialog)){event.preventDefault();last.focus();}
+    else if(!event.shiftKey&&(document.activeElement===last||document.activeElement===dialog)){event.preventDefault();first.focus();}
+  });
+  (focusable()[0]||dialog).focus();
+}
+function closeModal(){ buyerAuth.cancel();$('#modalRoot').innerHTML='';if(modalReturnFocus?.isConnected)modalReturnFocus.focus();modalReturnFocus=null; }
 
 async function showReviews(productId){const d=await api(`/products/${productId}/reviews`);openModal(`<div class="stat"><small>Средняя оценка</small><b>${Number(d.average_rating||0).toFixed(1)} ★</b></div><div class="settings-list" style="margin-top:14px">${(d.reviews||[]).map(r=>`<div class="list-card"><span class="avatar">${esc((r.buyer_name||'П')[0])}</span><span><b>${esc(r.buyer_name||'Покупатель')} · ${'★'.repeat(Number(r.rating||0))}</b><small>${esc(r.text||'')}</small></span></div>`).join('')||emptyState()}</div>${state.token?`<form id="reviewForm" class="form section" data-product-id="${productId}"><div class="field"><label>Оценка</label><select name="rating"><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></div><div class="field"><label>Комментарий</label><textarea name="text"></textarea></div><button class="button">${t('send')}</button></form>`:''}`,t('reviews'));
 }
@@ -413,9 +433,10 @@ function bindGlobalEvents(){
       if(form.id==='reviewForm'){const fd=new FormData(form);await api(`/products/${form.dataset.productId}/reviews`,{method:'POST',body:JSON.stringify({rating:Number(fd.get('rating')),text:fd.get('text')})});closeModal();toast('Отзыв сохранён');}
     }catch(error){toast(error.message,true);}
   });
-  $('#globalSearch').addEventListener('input',debounce(async event=>{const q=event.target.value.trim();$('#clearSearch').classList.toggle('hidden',!q);if(!q){$('#searchSuggestions').classList.add('hidden');return;}try{const rows=await api(`/search/suggestions?q=${encodeURIComponent(q)}&lang=${state.language}`);$('#searchSuggestions').innerHTML=rows.slice(0,8).map(x=>`<button class="suggestion" data-search="${esc(x.title||x.text||x.query||'')}">${icon('search')} ${esc(x.title||x.text||x.query||'')}</button>`).join('');$('#searchSuggestions').classList.toggle('hidden',!rows.length);refreshIcons();}catch{}},250));
+  const suggest=debounce(async (event,requestId)=>{if(requestId!==state.searchSuggestionId)return;const q=event.target.value.trim();$('#clearSearch').classList.toggle('hidden',!q);if(!q){$('#searchSuggestions').classList.add('hidden');return;}try{const rows=await api(`/search/suggestions?q=${encodeURIComponent(q)}&lang=${state.language}`);if(requestId!==state.searchSuggestionId)return;$('#searchSuggestions').innerHTML=rows.slice(0,8).map(x=>`<button class="suggestion" data-search="${esc(x.title||x.text||x.query||'')}">${icon('search')} ${esc(x.title||x.text||x.query||'')}</button>`).join('');$('#searchSuggestions').classList.toggle('hidden',!rows.length);refreshIcons();}catch{}},250);
+  $('#globalSearch').addEventListener('input',event=>suggest(event,++state.searchSuggestionId));
   $('#globalSearch').addEventListener('keydown',event=>{if(event.key==='Enter'){const q=event.target.value.trim();if(q){$('#searchSuggestions').classList.add('hidden');navigate('search',q);}}});
-  $('#clearSearch').addEventListener('click',()=>{$('#globalSearch').value='';$('#clearSearch').classList.add('hidden');$('#searchSuggestions').classList.add('hidden');});
+  $('#clearSearch').addEventListener('click',()=>{state.searchSuggestionId++;$('#globalSearch').value='';$('#clearSearch').classList.add('hidden');$('#searchSuggestions').classList.add('hidden');});
   $('#filePicker').addEventListener('change',event=>{const file=event.target.files?.[0];if(!file)return;state.pendingFile=file;const url=URL.createObjectURL(file);$('#attachmentPreview').innerHTML=`<div class="attachment-preview"><img src="${url}" alt=""><b>${esc(file.name)}</b><button class="icon-button" data-remove-attachment>${icon('x')}</button></div>`;updateSendButton();refreshIcons();event.target.value='';});
   document.addEventListener('input',event=>{if(event.target.id==='chatInput')updateSendButton();});
   document.addEventListener('change',event=>{if(event.target.matches('#interestsForm input[type="checkbox"]'))event.target.closest('.chip')?.classList.toggle('active',event.target.checked);});

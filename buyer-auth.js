@@ -13,7 +13,7 @@ export function createBuyerAuth({api, apiBase, language, escape, openModal, clos
     } else {
       fields = `<div class="field"><label for="authName">Ваше имя</label><input id="authName" name="name" autocomplete="name" maxlength="100" placeholder="Например, Лола" required></div><label class="auth-legal"><input type="checkbox" name="legal" required><span>Я принимаю <a href="${escape(apiBase)}/legal/buyer/terms" target="_blank" rel="noopener">условия использования</a> и <a href="${escape(apiBase)}/legal/buyer/privacy" target="_blank" rel="noopener">политику конфиденциальности</a>.</span></label><button class="button">Создать аккаунт</button>`;
     }
-    document.querySelector('.modal-body').innerHTML = `<div class="auth-intro"><img class="auth-logo" src="assets/mapmarket-logo.png" alt="MapMarket"><div><p class="eyebrow">MAPMARKET</p><h2>${flow.stage === 'name' ? 'Создание аккаунта' : 'Вход для покупателей'}</h2><p class="auth-copy">Вход и регистрация по номеру телефона, как в приложении. Пароль не нужен.</p></div></div><form id="authForm" class="form">${fields}<p id="authError" class="auth-error" role="alert" hidden></p></form>`;
+    document.querySelector('.modal-body').innerHTML = `<div class="auth-intro"><img class="auth-logo" src="assets/yaqintop-logo.png" alt="YAQINTOP MARKET"><div><p class="eyebrow">YAQINTOP MARKET</p><h2>${flow.stage === 'name' ? 'Создание аккаунта' : 'Вход для покупателей'}</h2><p class="auth-copy">Вход и регистрация по номеру телефона, как в приложении. Пароль не нужен.</p></div></div><form id="authForm" class="form">${fields}<p id="authError" class="auth-error" role="alert" hidden></p></form>`;
   }
   async function submit(form, channel) {
     const flow = current;

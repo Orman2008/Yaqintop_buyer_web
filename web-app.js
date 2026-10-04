@@ -90,7 +90,7 @@ const nav = [
   ["profile", "Профиль"],
 ];
 $("#app").outerHTML =
-  `<a class="skip-link" href="#view">К содержимому</a><div class="web-shell"><aside class="web-sidebar"><a class="web-brand" href="#home"><img src="assets/mapmarket-logo.png" alt="MapMarket"><span>MapMarket<br><small class="muted">Покупателям</small></span></a><nav aria-label="Основная навигация">${nav.map(([key, title]) => `<a href="#${key}" data-nav="${key}">${title}</a>`).join("")}</nav><div class="sidebar-footer">${supportLinks(base, "buyer")}<a href="../seller/">Продавцам →</a></div></aside><main class="web-main"><header class="web-header"><form id="searchForm" class="toolbar" style="margin:0;flex:1"><label class="visually-hidden" for="webSearch">Поиск товаров</label><input id="webSearch" name="q" placeholder="Искать товары и категории" autocomplete="off"><button class="button">Найти</button></form><a href="#notifications" aria-label="Уведомления">Уведомления</a></header><section id="view" class="web-content" aria-live="polite"></section></main></div>`;
+  `<a class="skip-link" href="#view">К содержимому</a><div class="web-shell"><aside class="web-sidebar"><a class="web-brand" href="#home"><img src="assets/yaqintop-logo.png" alt="YAQINTOP MARKET"><span>YAQINTOP MARKET<br><small class="muted">Покупателям</small></span></a><nav aria-label="Основная навигация">${nav.map(([key, title]) => `<a href="#${key}" data-nav="${key}">${title}</a>`).join("")}</nav><div class="sidebar-footer">${supportLinks(base, "buyer")}<a href="../seller/">Продавцам →</a></div></aside><main class="web-main"><header class="web-header"><form id="searchForm" class="toolbar" style="margin:0;flex:1"><label class="visually-hidden" for="webSearch">Поиск товаров</label><input id="webSearch" name="q" placeholder="Искать товары и категории" autocomplete="off"><button class="button">Найти</button></form><a href="#notifications" aria-label="Уведомления">Уведомления</a></header><section id="view" class="web-content" aria-live="polite"></section></main></div>`;
 const img = (url, alt, thumb = false) => {
   const source = mediaUrl(url, base, thumb);
   return source
@@ -325,7 +325,7 @@ async function go(next = route, data = routeData) {
   cleanup();
   cleanup = () => {};
   mapController = null;
-  document.title = `${nav.find((item) => item[0] === route)?.[1] || "MapMarket"} · MapMarket`;
+  document.title = `${nav.find((item) => item[0] === route)?.[1] || "YAQINTOP MARKET"} · YAQINTOP MARKET`;
   for (const item of document.querySelectorAll("[data-nav]"))
     item.classList.toggle("active", item.dataset.nav === route);
   $("#view").innerHTML = loading();
@@ -349,7 +349,7 @@ async function go(next = route, data = routeData) {
             : "/products?limit=24",
         ),
       );
-      html = `<section class="buyer-home-hero"><div><p class="eyebrow">MAPMARKET</p><h1>Находите лучшие товары рядом</h1><p>Сравнивайте цены, открывайте магазины на карте и прокладывайте маршрут.</p><div class="actions"><a class="button" href="#categories">Смотреть каталог</a><a class="button" href="#map">Открыть карту</a></div></div><img class="buyer-home-logo" src="assets/mapmarket-logo.png" alt="Логотип MapMarket"></section><div class="actions">${button("Моё местоположение", "locate")}</div>${recentSearches()}<section class="section"><h2>Рекомендации</h2>${grid(products)}</section><section class="section"><h2>Последние просмотры</h2><div id="recentProducts">${loading()}</div></section>`;
+      html = `<section class="buyer-home-hero"><div><p class="eyebrow">YAQINTOP MARKET</p><h1>Находите лучшие товары рядом</h1><p>Сравнивайте цены, открывайте магазины на карте и прокладывайте маршрут.</p><div class="actions"><a class="button" href="#categories">Смотреть каталог</a><a class="button" href="#map">Открыть карту</a></div></div><img class="buyer-home-logo" src="assets/yaqintop-logo.png" alt="Логотип YAQINTOP MARKET"></section><div class="actions">${button("Моё местоположение", "locate")}</div>${recentSearches()}<section class="section"><h2>Рекомендации</h2>${grid(products)}</section><section class="section"><h2>Последние просмотры</h2><div id="recentProducts">${loading()}</div></section>`;
     } else if (route === "categories") html = await categories(data);
     else if (["catalog", "search"].includes(route)) html = await catalogue();
     else if (route === "product" || route === "master")
@@ -389,7 +389,7 @@ async function go(next = route, data = routeData) {
     else html = empty("Страница не найдена");
     if (version !== generation) return;
     $("#view").innerHTML = html;
-    document.title = `${$("#view h1")?.textContent || "Покупателям"} — MapMarket`;
+    document.title = `${$("#view h1")?.textContent || "Покупателям"} — YAQINTOP MARKET`;
     if (route === "map") {
       mapController = mountBuyerMap($("#buyerMap"), {
         api,

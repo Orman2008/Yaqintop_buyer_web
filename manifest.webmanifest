@@ -1,0 +1,23 @@
+{
+  "name": "YAQINTOP MARKET",
+  "short_name": "YAQINTOP MARKET",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f8fc",
+  "theme_color": "#089bd5",
+  "icons": [
+    {
+      "src": "assets/yaqintop-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/yaqintop-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
