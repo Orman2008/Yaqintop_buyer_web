@@ -1,4 +1,5 @@
 import {appearanceSettings} from './shared/appearance.js';
+import {ensureLegalAcceptance,placementLabel,rankingHelp,paymentStateView} from './shared/compliance.js';
 import {mediaUrl,installPrivateMediaImages,withoutMediaCapabilities,clearPrivateMediaImages} from './shared/api.js';
 import {createBuyerAuth} from './buyer-auth.js?v=20261003-1';
 function resolveApiBaseUrl(configuredUrl, location) {
@@ -91,6 +92,8 @@ async function navigate(route, data=null) {
   state.searchSuggestionId++; $('#searchSuggestions').classList.add('hidden');
   state.route=route; state.routeData=data; renderNavigation(); window.scrollTo({top:0,behavior:'smooth'}); setLoading();
   try {
+    if(state.token&&!await ensureLegalAcceptance((path,options={})=>api(path,{...options,...(options.body!==undefined?{body:JSON.stringify(options.body)}:{})}))){$('#view').innerHTML='<section class="card"><h2>Необходимо принять новые версии документов</h2><button class="button" data-retry-route>Открыть документы</button></section>';return;}
+    if(route==='ranking'){$('#view').innerHTML=rankingHelp();return;}
     if(route==='home') await renderHome();
     else if(route==='catalog') await renderCatalog(data);
     else if(route==='favorites') await renderFavorites();
@@ -204,7 +207,7 @@ function productCard(p) {
     <div class="product-photo"><img class="product-image" src="${esc(imageUrl(p.image_url || p.image_urls?.[0]))}" alt="${esc(p.title)}" loading="lazy" />
     ${discount>0?`<span class="discount">-${Math.round(discount)}%</span>`:''}
     <button class="favorite-button ${saved?'active':''}" data-favorite="${id}" aria-pressed="${saved}" aria-label="${esc(t('favorites'))}: ${esc(p.title||'')}">${icon('heart',20)}</button></div>
-    <div class="product-body"><button class="product-title" data-product="${id}"><h3>${esc(p.title||'Товар')}</h3></button><div class="product-meta">${esc(p.shop_name||p.category||'')}</div>
+    <div class="product-body">${placementLabel(p)}<button class="product-title" data-product="${id}"><h3>${esc(p.title||'Товар')}</h3></button><div class="product-meta">${esc(p.shop_name||p.category||'')}</div>
     ${distance!=null&&Number.isFinite(Number(distance))?`<div class="product-distance">${icon('map-pin',13)}${Number(distance)<0.1?'&lt; 0.1':Number(distance).toFixed(1)} km</div>`:''}
     <div class="product-stock ${stock}">${labels[stock==='unknown'?0:stock==='available'?1:2]}</div>
     ${reviews>0?`<div class="rating">${icon('star',14)} <b>${Number(p.product_average_rating??p.average_rating??p.rating??0).toFixed(1)}</b><span>(${reviews})</span></div>`:''}
@@ -374,7 +377,7 @@ async function showWallet(){let d=await api('/users/me/subscriptions');const sec
 async function showQr(){const d=await api('/rewards/customer/qr');openModal(`<div style="text-align:center"><div id="qrCanvas" class="qr-box"></div><h2>${esc(d.customer?.name||state.user.name)}</h2><p class="muted">MM-ID: ${esc(d.customer?.mapmarket_id||'')}</p><div class="notice">QR обновляется автоматически и используется продавцом для подтверждения покупки.</div></div>`,'QR',false);setTimeout(()=>{const canvas=document.createElement('canvas');window.QRCode?.toCanvas(canvas,d.qr_token,{width:190},error=>{if(!error)$('#qrCanvas')?.append(canvas);});},20);}
 
 function showAccount(){openModal(`<form id="accountForm" class="form"><div class="field"><label>Фото профиля</label><input type="file" name="avatar" accept="image/jpeg,image/png,image/webp"></div><div class="field"><label>Имя</label><input name="name" required value="${esc(state.user.name)}"></div><div class="field"><label>Телефон</label><input disabled value="${esc(state.user.phone||'')}"></div><button class="button">${t('save')}</button><button type="button" class="button danger" data-delete-account>${t('deleteAccount')}</button></form>`,t('account'));}
-function showSavedCard(){const card=JSON.parse(localStorage.getItem('mm_web_card')||'null');openModal(`<form id="cardForm" class="form"><div class="field"><label>Номер карты</label><input name="number" inputmode="numeric" maxlength="19" placeholder="8600 0000 0000 0000" value="${esc(card?.number||'')}"></div><div class="field"><label>Срок действия</label><input name="expiry" maxlength="5" placeholder="MM/YY" value="${esc(card?.expiry||'')}"></div><button class="button">${t('save')}</button>${card?'<button type="button" class="button danger" data-remove-card>Удалить карту</button>':''}</form>`,'Сохранённая карта');}
+async function showSavedCard(){localStorage.removeItem('mm_web_card');try{openModal(paymentStateView(await api('/marketplace/payments/capabilities')),'Оплата');}catch(error){toast(error.message,true);}}
 async function showInterests(){const current=await api('/users/me/preferences').catch(()=>({categories:[]}));const selected=new Set(current.categories||[]);openModal(`<form id="interestsForm" class="form"><p class="muted">${current.completed?'Выбранные категории используются для персональных рекомендаций.':'Выберите ровно три категории для персональных рекомендаций.'}</p><div class="chips">${state.categories.map(c=>`<label class="chip ${selected.has(c)?'active':''}"><input type="checkbox" name="category" value="${esc(c)}" ${selected.has(c)?'checked':''} ${current.completed?'disabled':''} hidden>${esc(c)}</label>`).join('')}</div>${current.completed?'':`<button class="button">${t('save')}</button>`}</form>`,'Мои интересы');}
 async function checkPendingPurchase(){try{const data=await api('/rewards/customer/pending');const tx=data.transaction;if(!tx)return;openModal(`<div style="text-align:center"><span class="list-icon" style="margin:0 auto 14px">${icon('shopping-bag')}</span><h2>${esc(tx.shop_name)}</h2><p>${esc(tx.item_name||'Покупка')}</p><div class="stat-grid"><div class="stat"><small>Сумма</small><b>${money(tx.purchase_amount)}</b></div><div class="stat"><small>Скидка</small><b>${Number(tx.discount_percent||0)}%</b></div><div class="stat"><small>К оплате</small><b>${money(tx.final_amount)}</b></div></div><button class="button" data-confirm-purchase="${Number(tx.id)}">Подтвердить оплату</button></div>`,'Подтверждение оплаты');}catch{}}
 function showHelp(){const topics=[['search','Поиск и карта','Товары, магазины, расстояние и маршрут'],['archive','Товары, каталог и избранное','Цена, скидка, наличие и сохранённые товары'],['message-square','Связь с продавцом','Чат и фотографии'],['star','Отзывы и рейтинги','Оценка товара после покупки'],['shield','Безопасность и поддержка','Аккаунт, данные и помощь']];openModal(`<div class="settings-list">${topics.map(x=>`<div class="list-card"><span class="list-icon">${icon(x[0])}</span><span><b>${x[1]}</b><small>${x[2]}</small></span>${icon('chevron-right')}</div>`).join('')}</div>`,t('help'));}
@@ -409,6 +412,7 @@ async function showReviews(productId){const d=await api(`/products/${productId}/
 }
 
 function bindGlobalEvents(){
+  document.addEventListener('click',event=>{if(event.target.closest('[data-ranking]')){event.stopPropagation();navigate('ranking');}},true);
   document.addEventListener('click',async event=>{
     const moreProducts=event.target.closest('[data-load-more-products]');if(moreProducts){moreProducts.disabled=true;loadMoreProducts().catch(error=>{if(moreProducts.isConnected)moreProducts.disabled=false;toast(error.message,true);});return;}
     const retryRoute=event.target.closest('[data-retry-route]');if(retryRoute){const route=state.route,routeData=state.routeData;try{if(route==='home'){const pending=[];if(!state.catalogLoaded)pending.push(loadProducts());if(!state.shopsLoaded)pending.push(loadShops());if(!state.categoriesLoaded)pending.push(loadCategories());const results=await Promise.allSettled(pending);const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;}await navigate(route,routeData);}catch(error){$('#view').innerHTML=errorState(error);}return;}
@@ -449,7 +453,6 @@ function bindGlobalEvents(){
     try{
       if(form.id==='authForm'){await buyerAuth.submit(form,event.submitter?.value);return;}
       if(form.id==='accountForm'){const fd=new FormData(form);const d=await api('/users/me/profile',{method:'PUT',body:JSON.stringify({name:fd.get('name'),language_code:state.language})});state.user=d.user;const avatar=fd.get('avatar');if(avatar?.size){const upload=new FormData();upload.append('avatar',avatar);const avatarResult=await api('/users/me/avatar',{method:'PUT',body:upload});state.user=avatarResult.user||state.user;}persistSession();closeModal();renderProfile();}
-      if(form.id==='cardForm'){const fd=new FormData(form);localStorage.setItem('mm_web_card',JSON.stringify({number:fd.get('number'),expiry:fd.get('expiry')}));closeModal();toast('Карта сохранена');}
       if(form.id==='interestsForm'){const fd=new FormData(form);const categories=fd.getAll('category');if(categories.length!==3)throw new Error('Выберите ровно три категории.');await api('/users/me/preferences',{method:'POST',body:JSON.stringify({categories})});closeModal();toast('Интересы сохранены');}
       if(form.id==='reviewForm'){const fd=new FormData(form);await api(`/products/${form.dataset.productId}/reviews`,{method:'POST',body:JSON.stringify({rating:Number(fd.get('rating')),text:fd.get('text')})});closeModal();toast('Отзыв сохранён');}
     }catch(error){toast(error.message,true);}
@@ -467,5 +470,5 @@ function updateSendButton(){const btn=$('#chatSend');if(!btn)return;btn.classLis
 function debounce(fn,delay){let id;return(...args)=>{clearTimeout(id);id=setTimeout(()=>fn(...args),delay);};}
 
 window.YAQINTOP_BUYER_STARTED=true;
-window.dispatchEvent(new Event('yaqintop:started'));
+window.dispatchEvent(new window.Event('yaqintop:started'));
 bootstrap().catch(error=>{console.error(error);$('#view').innerHTML=errorState(error);refreshIcons();});
