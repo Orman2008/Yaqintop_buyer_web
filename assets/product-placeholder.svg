@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 700">
-  <rect width="600" height="700" rx="52" fill="#eef3fa"/>
-  <g fill="none" stroke="#2463eb" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" opacity=".7">
-    <path d="M170 245h260l-22 250H192z"/>
-    <path d="M235 270v-46c0-51 29-84 65-84s65 33 65 84v46"/>
-  </g>
-  <text x="300" y="575" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="700" fill="#71819d">Yaqintop market</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" rx="52" fill="#f2f4f8"/><g fill="none" stroke="#0994c8" stroke-width="14" stroke-linejoin="round"><rect x="239" y="239" width="122" height="36" rx="5"/><path d="M248 275v99h104v-99M283 314h34"/></g></svg>
