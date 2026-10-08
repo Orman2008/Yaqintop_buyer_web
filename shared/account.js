@@ -38,7 +38,7 @@ export function editAccount(api, user, onUpdate) {
 }
 export async function deleteAccount(api, onDeleted) {
   const modal = dialog(
-    `<p class="notice">Удаление аккаунта необратимо. Связанные данные будут удалены по правилам Yaqintop. Сначала запросите код подтверждения.</p>${button("Получить код удаления", "request-deletion")}`,
+    `<p class="notice">Удаление аккаунта необратимо. Связанные данные будут удалены по правилам YAQINTOP. Сначала запросите код подтверждения.</p>${button("Получить код удаления", "request-deletion")}`,
     "Удалить аккаунт",
   );
   $("[data-action]", modal).onclick = async (event) => {

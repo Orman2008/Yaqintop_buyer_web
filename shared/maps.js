@@ -1,5 +1,5 @@
 import { query, rows } from "./api.js";
-import { esc, money } from "./ui.js";
+import { esc } from "./ui.js";
 export function validPoint(lat, lng) {
   return (
     lat !== null &&
@@ -42,171 +42,28 @@ export function clusterStores(stores, project, cellSize = 80) {
   }
   return [...groups.values()];
 }
-export function locationPicker(element, onPick, current) {
-  if (!globalThis.L) {
-    element.textContent = "Карта недоступна. Введите координаты вручную.";
-    return () => {};
-  }
-  const point =
-    current && validPoint(current.lat ?? current[0], current.lng ?? current[1])
-      ? current
-      : null;
-  const map = L.map(element, {
-    zoomAnimation: false,
-    fadeAnimation: false,
-    markerZoomAnimation: false,
-  }).setView(point || [41.3111, 69.2797], 14);
-  let marker;
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution:
-      '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
-  }).addTo(map);
-  map.on("click", (event) => {
-    marker?.remove();
-    marker = L.marker(event.latlng).addTo(map);
-    onPick(event.latlng);
-  });
-  if (point) marker = L.marker(point).addTo(map);
-  const timer = setTimeout(() => map.invalidateSize(), 100);
-  return () => {
-    clearTimeout(timer);
-    map.remove();
-  };
+let loadingYandex;
+export function loadYandexMaps(){
+ if(globalThis.ymaps)return new Promise(resolve=>globalThis.ymaps.ready(()=>resolve(globalThis.ymaps)));
+ if(loadingYandex)return loadingYandex;
+ const key=String(globalThis.MAPMARKET_CONFIG?.YANDEX_MAPS_API_KEY||'').trim();
+ if(!key)return Promise.reject(new Error('Для карты сайта требуется настроить Yandex JavaScript API. Координаты можно указать вручную.'));
+ loadingYandex=new Promise((resolve,reject)=>{const script=document.createElement('script');let settled=false;const finish=(error)=>{if(settled)return;settled=true;clearTimeout(timer);if(error){script.remove();reject(error);}else resolve(globalThis.ymaps);};const timer=setTimeout(()=>finish(new Error('Яндекс.Карта не загрузилась. Повторите попытку.')),15000);script.src='https://api-maps.yandex.ru/2.1/?'+new URLSearchParams({apikey:key,lang:'ru_RU'});script.onerror=()=>finish(new Error('Яндекс.Карта не загрузилась. Проверьте соединение.'));script.onload=()=>{if(!globalThis.ymaps)return finish(new Error('Яндекс.Карта недоступна.'));globalThis.ymaps.ready(()=>finish());};document.head.append(script);}).catch(error=>{loadingYandex=null;throw error;});return loadingYandex;
 }
-export function mountBuyerMap(element, { api, onStores, onSelect, onError }) {
-  if (!globalThis.L)
-    throw new Error(
-      "Карта не загрузилась. Проверьте соединение и повторите попытку.",
-    );
-  const map = L.map(element, {
-    zoomAnimation: false,
-    fadeAnimation: false,
-    markerZoomAnimation: false,
-  }).setView([41.3111, 69.2797], 13);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution:
-      '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
-  }).addTo(map);
-  const markers = L.layerGroup().addTo(map);
-  let shops = [],
-    timer,
-    version = 0,
-    selected,
-    route,
-    gps,
-    gpsMarker,
-    destroyed = false;
-  function redraw() {
-    markers.clearLayers();
-    for (const group of clusterStores(
-      shops.filter((s) => s.id !== selected?.id),
-      (lat, lng) => map.project([lat, lng], map.getZoom()),
-    )) {
-      const lat =
-          group.reduce((sum, s) => sum + Number(s.latitude), 0) / group.length,
-        lng =
-          group.reduce((sum, s) => sum + Number(s.longitude), 0) / group.length;
-      L.marker([lat, lng], {
-        icon: L.divIcon({
-          className: "map-pin",
-          html: `<span>${group.length > 1 ? group.length : "●"}</span>`,
-          iconSize: [38, 38],
-        }),
-      })
-        .addTo(markers)
-        .on("click", () =>
-          group.length > 1
-            ? map.setView([lat, lng], Math.min(19, map.getZoom() + 2))
-            : choose(group[0]),
-        );
-    }
-    if (selected && validPoint(selected.latitude, selected.longitude))
-      L.marker([selected.latitude, selected.longitude])
-        .addTo(markers)
-        .bindPopup(esc(selected.name))
-        .openPopup();
-  }
-  function choose(store) {
-    if (!store) return;
-    selected = store;
-    redraw();
-    onSelect(store);
-  }
-  async function load() {
-    const id = ++version,
-      bounds = map.getBounds();
-    if (
-      bounds.getNorth() - bounds.getSouth() > 6 ||
-      bounds.getEast() - bounds.getWest() > 8
-    )
-      return;
-    try {
-      const data = await api.request(
-        `/shops?${query({ north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest(), limit: 300 })}`,
-      );
-      if (destroyed || id !== version) return;
-      shops = rows(data);
-      redraw();
-      onStores(shops);
-    } catch (error) {
-      if (!destroyed && id === version) onError(error);
-    }
-  }
-  map.on("moveend", () => {
-    clearTimeout(timer);
-    timer = setTimeout(load, 500);
-  });
-  load();
-  return {
-    choose,
-    async locate() {
-      const position = await new Promise((resolve, reject) =>
-        navigator.geolocation
-          ? navigator.geolocation.getCurrentPosition(resolve, reject, {
-              timeout: 15000,
-              maximumAge: 30000,
-            })
-          : reject(new Error("Геолокация недоступна")),
-      );
-      if (destroyed) throw new Error("Карта закрыта");
-      gps = { lat: position.coords.latitude, lng: position.coords.longitude };
-      gpsMarker?.remove();
-      gpsMarker = L.circleMarker([gps.lat, gps.lng], {
-        radius: 8,
-        color: "#fff",
-        fillColor: "#0b8fd1",
-        fillOpacity: 1,
-      }).addTo(map);
-      map.setView([gps.lat, gps.lng], 15);
-      return gps;
-    },
-    async route(mode = "foot") {
-      if (!selected) throw new Error("Выберите магазин");
-      if (!validPoint(selected.latitude, selected.longitude))
-        throw new Error("У магазина не указаны координаты");
-      if (!gps) await this.locate();
-      const data = await api.request(
-        `/route?${query({ start_lat: gps.lat, start_lng: gps.lng, end_lat: selected.latitude, end_lng: selected.longitude, mode })}`,
-      );
-      const result = data.routes?.[0];
-      if (destroyed) throw new Error("Карта закрыта");
-      if (!result?.geometry) throw new Error("Маршрут не найден");
-      route?.remove();
-      route = L.geoJSON(result.geometry, {
-        style: {
-          color: "#0b8fd1",
-          weight: 5,
-          dashArray: mode === "foot" ? "2 8" : null,
-        },
-      }).addTo(map);
-      map.fitBounds(route.getBounds(), { padding: [30, 30] });
-      return `${(result.distance / 1000).toFixed(1)} км · ~${Math.ceil(result.duration / 60)} мин`;
-    },
-    destroy() {
-      destroyed = true;
-      version++;
-      clearTimeout(timer);
-      map.remove();
-    },
-  };
+export async function mountStoreMap(element,stores,{onSelect}={}){
+ const y=await loadYandexMaps();if(!element.isConnected)return null;
+ element.replaceChildren();const map=new y.Map(element,{center:[41.3111,69.2797],zoom:12,controls:['zoomControl','geolocationControl','fullscreenControl']});
+ const cluster=new y.Clusterer({preset:'islands#blueClusterIcons',groupByCoordinates:false});
+ for(const store of stores.filter(s=>validPoint(s.latitude,s.longitude))){const marker=new y.Placemark([Number(store.latitude),Number(store.longitude)],{balloonContent:'<b>'+esc(store.name)+'</b><br>'+esc(store.address||''),hintContent:esc(store.name)},{preset:'islands#blueShoppingIcon'});marker.events.add('click',()=>onSelect?.(store));cluster.add(marker);}
+ map.geoObjects.add(cluster);return {remove:()=>map.destroy()};
+}
+export function locationPicker(element,onPick,current){
+ let destroyed=false,map;
+ element.textContent='Загружаем Яндекс.Карту…';loadYandexMaps().then(y=>{if(destroyed||!element.isConnected)return;element.replaceChildren();const point=validPoint(current?.lat??current?.[0],current?.lng??current?.[1])?[Number(current.lat??current[0]),Number(current.lng??current[1])]:[41.3111,69.2797];map=new y.Map(element,{center:point,zoom:14,controls:['zoomControl','geolocationControl']});const marker=new y.Placemark(point,{}, {preset:'islands#blueShoppingIcon',draggable:true});map.geoObjects.add(marker);const picked=coords=>{marker.geometry.setCoordinates(coords);onPick({lat:coords[0],lng:coords[1]});};map.events.add('click',event=>picked(event.get('coords')));marker.events.add('dragend',()=>picked(marker.geometry.getCoordinates()));}).catch(error=>{if(!destroyed)element.textContent=error.message;});return()=>{destroyed=true;map?.destroy();};
+}
+export function mountBuyerMap(element,{api,onStores,onSelect,onError}){
+ let map,selected,gps,route,destroyed=false,version=0,timer;
+ const ready=loadYandexMaps().then(y=>{if(destroyed)return;map=new y.Map(element,{center:[41.3111,69.2797],zoom:13,controls:['zoomControl']});map.events.add('boundschange',()=>{clearTimeout(timer);timer=setTimeout(load,500);});return load();});ready.catch(onError);
+ async function load(){if(destroyed||!map)return;const id=++version,[[south,west],[north,east]]=map.getBounds();if(north-south>6||east-west>8)return;try{const shops=rows(await api.request('/shops?'+query({north,south,east,west,limit:300})));if(destroyed||id!==version)return;map.geoObjects.removeAll();const cluster=new globalThis.ymaps.Clusterer({preset:'islands#blueClusterIcons'});for(const shop of shops.filter(s=>validPoint(s.latitude,s.longitude))){const marker=new globalThis.ymaps.Placemark([Number(shop.latitude),Number(shop.longitude)],{hintContent:esc(shop.name)},{preset:'islands#blueShoppingIcon'});marker.events.add('click',()=>controller.choose(shop));cluster.add(marker);}map.geoObjects.add(cluster);if(route)map.geoObjects.add(route);onStores(shops);}catch(error){if(!destroyed&&id===version)onError(error);}}
+ const controller={choose(store){if(store){selected=store;onSelect(store);}},async locate(){await ready;const position=await new Promise((resolve,reject)=>navigator.geolocation?navigator.geolocation.getCurrentPosition(resolve,reject,{timeout:15000,maximumAge:30000}):reject(new Error('Геолокация недоступна')));if(destroyed)throw new Error('Карта закрыта');gps={lat:position.coords.latitude,lng:position.coords.longitude};map.setCenter([gps.lat,gps.lng],15);return gps;},async route(mode='foot'){await ready;if(!selected||!validPoint(selected.latitude,selected.longitude))throw new Error('Выберите магазин с координатами');if(!gps)await this.locate();const data=await api.request('/route?'+query({start_lat:gps.lat,start_lng:gps.lng,end_lat:selected.latitude,end_lng:selected.longitude,mode})),result=data.routes?.[0];if(destroyed)throw new Error('Карта закрыта');if(!result?.geometry?.coordinates)throw new Error('Маршрут не найден');if(route)map.geoObjects.remove(route);route=new globalThis.ymaps.Polyline(result.geometry.coordinates.map(p=>[p[1],p[0]]),{},{strokeColor:'#0b8fd1',strokeWidth:5});map.geoObjects.add(route);map.setBounds(route.geometry.getBounds());return (result.distance/1000).toFixed(1)+' км · ~'+Math.ceil(result.duration/60)+' мин';},destroy(){destroyed=true;version++;clearTimeout(timer);map?.destroy();}};return controller;
 }

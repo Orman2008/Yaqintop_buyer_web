@@ -8,7 +8,7 @@
     const panel = document.createElement('div');
     panel.className = 'empty startup-error';
     const title = document.createElement('h2');
-    title.textContent = 'Не удалось открыть Yaqintop market';
+    title.textContent = 'Не удалось открыть YAQINTOP MARKET';
     const text = document.createElement('p');
     text.textContent = 'Файлы сайта не загрузились. Обновите страницу и повторите попытку.';
     const retry = document.createElement('button');

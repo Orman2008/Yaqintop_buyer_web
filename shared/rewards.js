@@ -45,7 +45,7 @@ export function sellerTransaction(api, shopId, transaction) {
 }
 export function buyerTransaction(api, transaction, onConfirmed) {
   const modal = dialog(
-    `<p>Магазин: ${esc(transaction.shop_name)}</p><h3>${esc(transaction.item_name)}</h3><p>Скидка: ${money(transaction.discount_amount)}</p><p class="price">Итого: ${money(transaction.final_amount)}</p><p class="notice">Подтверждайте только фактическую покупку. Это существующая QR-сделка Yaqintop, не банковская онлайн-оплата.</p>${button("Подтвердить покупку", "qr-buyer-confirm")}`,
+    `<p>Магазин: ${esc(transaction.shop_name)}</p><h3>${esc(transaction.item_name)}</h3><p>Скидка: ${money(transaction.discount_amount)}</p><p class="price">Итого: ${money(transaction.final_amount)}</p><p class="notice">Подтверждайте только фактическую покупку. Это существующая QR-сделка YAQINTOP, не банковская онлайн-оплата.</p>${button("Подтвердить покупку", "qr-buyer-confirm")}`,
     "Подтверждение QR-сделки",
   );
   $("[data-action=qr-buyer-confirm]", modal).onclick = async (event) => {
